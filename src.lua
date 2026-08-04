@@ -11,12 +11,17 @@ local NotifHolder = nil
 local isConnected = false
 local currentKeybind = Enum.KeyCode.RightShift
 
--- Visual Styling Config (Matching Screenshot)
+local windowCount = 0
+local WINDOW_WIDTH = 220
+local WINDOW_PADDING = 12
+local START_X = 20
+local START_Y = 50
+
 local Theme = {
     WindowBackground = Color3.fromRGB(16, 16, 18),
     HeaderBackground = Color3.fromRGB(16, 16, 18),
     ElementBackground = Color3.fromRGB(26, 26, 30),
-    Accent = Color3.fromRGB(220, 35, 35), -- Dark crimson red from screenshot
+    Accent = Color3.fromRGB(220, 35, 35),
     ToggleOff = Color3.fromRGB(40, 40, 45),
     Text = Color3.fromRGB(255, 255, 255),
     TextDim = Color3.fromRGB(180, 180, 180),
@@ -25,7 +30,6 @@ local Theme = {
     FontRegular = Enum.Font.SourceSans
 }
 
--- Configuration State
 local togglesRegistry = {}
 local activeTogglesList = {}
 local rgbEnabled = false
@@ -190,10 +194,16 @@ function Library:AddWindow(titleText, defaultPosition, hubName, toggleKey)
         initGui(hubName, toggleKey)
     end
 
+    if not defaultPosition then
+        local xOffset = START_X + (windowCount * (WINDOW_WIDTH + WINDOW_PADDING))
+        defaultPosition = UDim2.new(0, xOffset, 0, START_Y)
+    end
+    windowCount = windowCount + 1
+
     local Window = Instance.new("Frame")
     Window.Name = titleText .. "Window"
-    Window.Size = UDim2.new(0, 220, 0, 400)
-    Window.Position = defaultPosition or UDim2.new(0, 50, 0, 50)
+    Window.Size = UDim2.new(0, WINDOW_WIDTH, 0, 400)
+    Window.Position = defaultPosition
     Window.BackgroundColor3 = Theme.WindowBackground
     Window.BorderSizePixel = 0
     Window.Parent = ScreenGui
@@ -213,7 +223,6 @@ function Library:AddWindow(titleText, defaultPosition, hubName, toggleKey)
     HeaderCorner.CornerRadius = UDim.new(0, 8)
     HeaderCorner.Parent = Header
 
-    -- Centered Title (Matching Image)
     local TitleLabel = Instance.new("TextLabel")
     TitleLabel.Size = UDim2.new(1, -40, 1, 0)
     TitleLabel.Position = UDim2.new(0, 20, 0, 0)
@@ -254,8 +263,8 @@ function Library:AddWindow(titleText, defaultPosition, hubName, toggleKey)
     Layout.Parent = Container
 
     local collapsed = false
-    local fullHeight = UDim2.new(0, 220, 0, 400)
-    local collapsedHeight = UDim2.new(0, 220, 0, 36)
+    local fullHeight = UDim2.new(0, WINDOW_WIDTH, 0, 400)
+    local collapsedHeight = UDim2.new(0, WINDOW_WIDTH, 0, 36)
 
     CollapseBtn.MouseButton1Click:Connect(function()
         collapsed = not collapsed
@@ -264,7 +273,6 @@ function Library:AddWindow(titleText, defaultPosition, hubName, toggleKey)
         Window.Size = collapsed and collapsedHeight or fullHeight
     end)
 
-    -- Window Dragging
     local dragging, dragInput, dragStart, startPos
     Header.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -298,7 +306,6 @@ function Library:AddWindow(titleText, defaultPosition, hubName, toggleKey)
         Library:Notify(title, text, duration)
     end
 
-    -- Button Design (Matching Image)
     function windowAPI:AddButton(text, callback)
         callback = callback or function() end
         local btn = Instance.new("TextButton")
@@ -325,7 +332,6 @@ function Library:AddWindow(titleText, defaultPosition, hubName, toggleKey)
         return btn
     end
 
-    -- Toggle Design (Red Filled Box on Right)
     function windowAPI:AddToggle(text, default, callback)
         callback = callback or function() end
         local savedVal = savedConfigData[text]
@@ -390,7 +396,6 @@ function Library:AddWindow(titleText, defaultPosition, hubName, toggleKey)
         return btn
     end
 
-    -- New Component: Red Fill Slider (Matching "Autofarm Speed" / "GUI Transparency")
     function windowAPI:AddSlider(text, min, max, default, callback)
         callback = callback or function() end
         min = min or 0
@@ -482,7 +487,6 @@ function Library:AddWindow(titleText, defaultPosition, hubName, toggleKey)
         return sliderFrame
     end
 
-    -- New Component: Text Input/Value Box (Matching "Unbox Crate: KnifeBox1")
     function windowAPI:AddTextBox(text, defaultText, callback)
         callback = callback or function() end
 
