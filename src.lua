@@ -11,13 +11,13 @@ local NotifHolder = nil
 local currentKeybind = Enum.KeyCode.RightShift
 local isRebinding = false
 
--- Fixed Theme: ToggleOff is dark gray, Accent (ON state) is green
+-- Updated Theme: ToggleOff is Red when off, Accent is Green when on
 local Theme = {
     WindowBackground = Color3.fromRGB(18, 18, 18),
     HeaderBackground = Color3.fromRGB(25, 25, 25),
     ElementBackground = Color3.fromRGB(28, 28, 32),
     Accent = Color3.fromRGB(40, 200, 40),       -- Green when ON
-    ToggleOff = Color3.fromRGB(60, 60, 65),     -- Dark Gray when OFF
+    ToggleOff = Color3.fromRGB(220, 35, 35),   -- Red when OFF
     Text = Color3.fromRGB(255, 255, 255),
     TextDim = Color3.fromRGB(180, 180, 180),
     Border = Color3.fromRGB(40, 40, 40),
