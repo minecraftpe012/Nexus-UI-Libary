@@ -3,6 +3,7 @@ local CoreGui = game:GetService("CoreGui")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
 local LocalPlayer = Players.LocalPlayer
 
 local Library = {}
@@ -16,7 +17,7 @@ local Theme = {
     WindowBackground = Color3.fromRGB(18, 18, 18),
     HeaderBackground = Color3.fromRGB(25, 25, 25),
     ElementBackground = Color3.fromRGB(28, 28, 32),
-    Accent = Color3.fromRGB(40, 200, 40),       -- Green when ON
+    Accent = Color3.fromRGB(40, 200, 40),        -- Green when ON
     ToggleOff = Color3.fromRGB(220, 35, 35),   -- Red when OFF
     Text = Color3.fromRGB(255, 255, 255),
     TextDim = Color3.fromRGB(180, 180, 180),
@@ -171,12 +172,12 @@ end
 function Library:AddWindow(windowTitle)
     initGui()
 
-    local spawnX = 20 + (windowOffsetCount * 175)
+    local spawnX = 20 + (windowOffsetCount * 185)
     windowOffsetCount = windowOffsetCount + 1
 
     local Window = Instance.new("Frame")
     Window.Name = windowTitle .. "Window"
-    Window.Size = UDim2.new(0, 165, 0, 30)
+    Window.Size = UDim2.new(0, 175, 0, 40)
     Window.Position = UDim2.new(0, spawnX, 0, 50)
     Window.BackgroundColor3 = Theme.WindowBackground
     Window.BorderSizePixel = 0
@@ -218,11 +219,14 @@ function Library:AddWindow(windowTitle)
     MinimizeBtn.TextSize = 14
     MinimizeBtn.Parent = Header
 
-    local Container = Instance.new("Frame")
+    local Container = Instance.new("ScrollingFrame")
     Container.Name = "Container"
     Container.Size = UDim2.new(1, -8, 0, 0)
     Container.Position = UDim2.new(0, 4, 0, 34)
     Container.BackgroundTransparency = 1
+    Container.BorderSizePixel = 0
+    Container.CanvasSize = UDim2.new(0, 0, 0, 0)
+    Container.ScrollBarThickness = 2
     Container.Parent = Window
 
     local ContainerLayout = Instance.new("UIListLayout")
@@ -230,19 +234,28 @@ function Library:AddWindow(windowTitle)
     ContainerLayout.Padding = UDim.new(0, 4)
     ContainerLayout.Parent = Container
 
-    ContainerLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-        if Container.Visible then
-            Container.Size = UDim2.new(1, -8, 0, ContainerLayout.AbsoluteContentSize.Y)
-            Window.Size = UDim2.new(0, 165, 0, ContainerLayout.AbsoluteContentSize.Y + 40)
+    local function updateSize()
+        local contentHeight = ContainerLayout.AbsoluteContentSize.Y
+        Container.CanvasSize = UDim2.new(0, 0, 0, contentHeight)
+        if not isMinimized then
+            local targetHeight = math.clamp(contentHeight + 40, 40, 350)
+            Window.Size = UDim2.new(0, 175, 0, targetHeight)
+            Container.Size = UDim2.new(1, -8, 0, targetHeight - 38)
         end
-    end)
+    end
+
+    ContainerLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateSize)
 
     local isMinimized = false
     MinimizeBtn.MouseButton1Click:Connect(function()
         isMinimized = not isMinimized
         Container.Visible = not isMinimized
         MinimizeBtn.Text = isMinimized and "+" or "-"
-        Window.Size = isMinimized and UDim2.new(0, 165, 0, 30) or UDim2.new(0, 165, 0, ContainerLayout.AbsoluteContentSize.Y + 40)
+        if isMinimized then
+            Window.Size = UDim2.new(0, 175, 0, 30)
+        else
+            updateSize()
+        end
     end)
 
     local dragging, dragInput, dragStart, startPos
@@ -277,7 +290,7 @@ function Library:AddWindow(windowTitle)
     function windowAPI:AddButton(text, callback)
         callback = callback or function() end
         local btn = Instance.new("TextButton")
-        btn.Size = UDim2.new(1, 0, 0, 24)
+        btn.Size = UDim2.new(1, 0, 0, 26)
         btn.BackgroundColor3 = Theme.ElementBackground
         btn.BorderSizePixel = 0
         btn.Font = Theme.FontRegular
@@ -294,6 +307,7 @@ function Library:AddWindow(windowTitle)
             task.spawn(callback)
         end)
 
+        updateSize()
         return btn
     end
 
@@ -306,7 +320,7 @@ function Library:AddWindow(windowTitle)
         btn.BackgroundColor3 = Theme.ElementBackground
         btn.BorderSizePixel = 0
         btn.Font = Theme.FontRegular
-        btn.Text = "   " .. text
+        btn.Text = "    " .. text
         btn.TextColor3 = Theme.Text
         btn.TextSize = 12
         btn.TextXAlignment = Enum.TextXAlignment.Left
@@ -324,9 +338,9 @@ function Library:AddWindow(windowTitle)
 
         local function updateColor()
             if toggled then
-                box.BackgroundColor3 = Theme.Accent   -- Green when ON
+                box.BackgroundColor3 = Theme.Accent
             else
-                box.BackgroundColor3 = Theme.ToggleOff -- Red when OFF
+                box.BackgroundColor3 = Theme.ToggleOff
             end
         end
         updateColor()
@@ -341,12 +355,13 @@ function Library:AddWindow(windowTitle)
             pcall(callback, toggled)
         end)
 
+        updateSize()
         return btn
     end
 
     function windowAPI:AddLabel(text)
         local lbl = Instance.new("TextLabel")
-        lbl.Size = UDim2.new(1, 0, 0, 18)
+        lbl.Size = UDim2.new(1, 0, 0, 20)
         lbl.BackgroundTransparency = 1
         lbl.Font = Theme.FontBold
         lbl.Text = text
@@ -355,6 +370,7 @@ function Library:AddWindow(windowTitle)
         lbl.TextXAlignment = Enum.TextXAlignment.Center
         lbl.Parent = Container
 
+        updateSize()
         return lbl
     end
 
@@ -363,11 +379,12 @@ end
 
 Library.CreateWindow = Library.AddWindow
 
--- ESP implementation script below
-Library:Notify("Prism", "Welcome!", 3)
+-- Notification
+Library:Notify("Prism Hub", "Loaded successfully!", 3)
 
+-- Visuals Window (ESP)
 local VisualsWindow = Library:AddWindow("Visuals")
-VisualsWindow:AddLabel("Esp")
+VisualsWindow:AddLabel("--- ESP ---")
 
 local espAll = false
 local espMurderer = false
@@ -453,7 +470,7 @@ local function updateESPState()
                             
                             local textLabel = billboard:FindFirstChild("Text")
                             if textLabel then
-                                textLabel.Text = plr.Name
+                                textLabel.Text = plr.Name .. " (" .. role .. ")"
                                 textLabel.TextColor3 = roleColor
                             end
                         end
@@ -489,17 +506,124 @@ local function updateESPState()
     end
 end
 
-VisualsWindow:AddToggle("AllEsp", false, function(state) 
+VisualsWindow:AddToggle("All ESP", false, function(state) 
     espAll = state
     updateESPState()
 end)
 
-VisualsWindow:AddToggle("Esp Murderer Only", false, function(state) 
+VisualsWindow:AddToggle("Murderer ESP", false, function(state) 
     espMurderer = state
     updateESPState()
 end)
 
-VisualsWindow:AddToggle("Esp Sheriff Only", false, function(state) 
+VisualsWindow:AddToggle("Sheriff ESP", false, function(state) 
     espSheriff = state
     updateESPState()
 end)
+
+-- X-Ray Feature
+VisualsWindow:AddLabel("--- Misc Visuals ---")
+local xrayActive = false
+local originalTransparencies = {}
+
+VisualsWindow:AddToggle("X-Ray", false, function(state)
+    xrayActive = state
+    if xrayActive then
+        for _, obj in ipairs(Workspace:GetDescendants()) do
+            if obj:IsA("BasePart") and not obj:IsDescendantOf(Players.Character or LocalPlayer.Character) then
+                if obj.Transparency < 0.5 then
+                    originalTransparencies[obj] = obj.Transparency
+                    obj.Transparency = 0.6
+                end
+            end
+        end
+    else
+        for obj, trans in pairs(originalTransparencies) do
+            if obj and obj.Parent then
+                obj.Transparency = trans
+            end
+        end
+        table.clear(originalTransparencies)
+    end
+end)
+
+-- Player Window (WalkSpeed, JumpPower, Noclip)
+local PlayerWindow = Library:AddWindow("Player")
+PlayerWindow:AddLabel("--- Movement ---")
+
+-- WalkSpeed
+local customSpeed = 16
+local speedActive = false
+
+PlayerWindow:AddToggle("Enable WalkSpeed", false, function(state)
+    speedActive = state
+    trackConnection(RunService.RenderStepped:Connect(function()
+        if speedActive and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+            LocalPlayer.Character.Humanoid.WalkSpeed = customSpeed
+        end
+    end))
+end)
+
+PlayerWindow:AddButton("Set WalkSpeed (50)", function()
+    customSpeed = 50
+    Library:Notify("Player", "WalkSpeed set to 50", 2)
+end)
+
+PlayerWindow:AddButton("Set WalkSpeed (100)", function()
+    customSpeed = 100
+    Library:Notify("Player", "WalkSpeed set to 100", 2)
+end)
+
+PlayerWindow:AddButton("Reset WalkSpeed", function()
+    customSpeed = 16
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+        LocalPlayer.Character.Humanoid.WalkSpeed = 16
+    end
+    Library:Notify("Player", "WalkSpeed reset", 2)
+end)
+
+-- JumpPower
+PlayerWindow:AddLabel("--- Jumping ---")
+local jumpActive = false
+local customJump = 50
+
+PlayerWindow:AddToggle("Enable JumpPower", false, function(state)
+    jumpActive = state
+    trackConnection(RunService.RenderStepped:Connect(function()
+        if jumpActive and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+            LocalPlayer.Character.Humanoid.UseJumpPower = true
+            LocalPlayer.Character.Humanoid.JumpPower = customJump
+        end
+    end))
+end)
+
+PlayerWindow:AddButton("Set JumpPower (100)", function()
+    customJump = 100
+    Library:Notify("Player", "JumpPower set to 100", 2)
+end)
+
+PlayerWindow:AddButton("Reset JumpPower", function()
+    customJump = 50
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+        LocalPlayer.Character.Humanoid.JumpPower = 50
+    end
+    Library:Notify("Player", "JumpPower reset", 2)
+end)
+
+-- Noclip
+PlayerWindow:AddLabel("--- Collisions ---")
+local noclipActive = false
+
+PlayerWindow:AddToggle("Noclip", false, function(state)
+    noclipActive = state
+end)
+
+trackConnection(RunService.Stepped:Connect(function()
+    if noclipActive and LocalPlayer.Character then
+        for _, part in ipairs(LocalPlayer.Character:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = false
+            end
+        end
+    end
+end))
