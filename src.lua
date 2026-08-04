@@ -23,57 +23,44 @@ function Library.new(hubName)
 
     local WindowManager = {}
 
-    function WindowManager:AddWindow(titleText, defaultPosition, customColor)
-        local accent = customColor or Color3.fromRGB(114, 43, 215)
-
+    function WindowManager:AddWindow(titleText, defaultPosition)
         local Window = Instance.new("Frame")
         Window.Name = titleText .. "Window"
-        Window.Size = UDim2.new(0, 185, 0, 320)
+        Window.Size = UDim2.new(0, 180, 0, 340)
         Window.Position = defaultPosition or UDim2.new(0, 50, 0, 50)
-        Window.BackgroundColor3 = Color3.fromRGB(15, 15, 18)
-        Window.BorderSizePixel = 0
+        Window.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
+        Window.BorderSizePixel = 1
+        Window.BorderColor3 = Color3.fromRGB(35, 35, 45)
         Window.Parent = ScreenGui
-
-        local WinStroke = Instance.new("UIStroke")
-        WinStroke.Color = Color3.fromRGB(35, 35, 42)
-        WinStroke.Thickness = 1
-        WinStroke.Parent = Window
 
         local Header = Instance.new("TextButton")
         Header.Name = "Header"
-        Header.Size = UDim2.new(1, 0, 0, 26)
-        Header.BackgroundColor3 = Color3.fromRGB(22, 22, 26)
+        Header.Size = UDim2.new(1, 0, 0, 24)
+        Header.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
         Header.BorderSizePixel = 0
         Header.AutoButtonColor = false
         Header.Font = Enum.Font.SourceSansBold
         Header.Text = "  " .. titleText .. "  -"
-        Header.TextColor3 = Color3.fromRGB(220, 220, 220)
+        Header.TextColor3 = Color3.fromRGB(240, 240, 240)
         Header.TextSize = 13
         Header.TextXAlignment = Enum.TextXAlignment.Left
         Header.Parent = Window
 
-        local HeaderAccent = Instance.new("Frame")
-        HeaderAccent.Size = UDim2.new(1, 0, 0, 2)
-        HeaderAccent.Position = UDim2.new(0, 0, 1, -2)
-        HeaderAccent.BackgroundColor3 = accent
-        HeaderAccent.BorderSizePixel = 0
-        HeaderAccent.Parent = Header
-
         local Container = Instance.new("ScrollingFrame")
         Container.Name = "Container"
-        Container.Size = UDim2.new(1, -4, 1, -30)
-        Container.Position = UDim2.new(0, 2, 0, 28)
+        Container.Size = UDim2.new(1, -6, 1, -28)
+        Container.Position = UDim2.new(0, 3, 0, 26)
         Container.BackgroundTransparency = 1
         Container.BorderSizePixel = 0
         Container.CanvasSize = UDim2.new(0, 0, 0, 0)
         Container.AutomaticCanvasSize = Enum.AutomaticSize.Y
         Container.ScrollBarThickness = 2
-        Container.ScrollBarImageColor3 = accent
+        Container.ScrollBarImageColor3 = Color3.fromRGB(70, 70, 90)
         Container.Parent = Window
 
         local Layout = Instance.new("UIListLayout")
         Layout.SortOrder = Enum.SortOrder.LayoutOrder
-        Layout.Padding = UDim.new(0, 3)
+        Layout.Padding = UDim.new(0, 2)
         Layout.Parent = Container
 
         local dragging, dragInput, dragStart, startPos
@@ -108,26 +95,22 @@ function Library.new(hubName)
         function windowAPI:AddButton(text, callback)
             callback = callback or function() end
             local btn = Instance.new("TextButton")
-            btn.Size = UDim2.new(1, 0, 0, 24)
-            btn.BackgroundColor3 = Color3.fromRGB(22, 22, 26)
-            btn.BorderSizePixel = 0
+            btn.Size = UDim2.new(1, 0, 0, 22)
+            btn.BackgroundColor3 = Color3.fromRGB(24, 24, 30)
+            btn.BorderSizePixel = 1
+            btn.BorderColor3 = Color3.fromRGB(38, 38, 48)
             btn.AutoButtonColor = false
             btn.Font = Enum.Font.SourceSans
             btn.Text = text
-            btn.TextColor3 = Color3.fromRGB(180, 180, 180)
+            btn.TextColor3 = Color3.fromRGB(200, 200, 200)
             btn.TextSize = 12
             btn.Parent = Container
 
-            local btnStroke = Instance.new("UIStroke")
-            btnStroke.Color = Color3.fromRGB(35, 35, 42)
-            btnStroke.Thickness = 1
-            btnStroke.Parent = btn
-
             btn.MouseButton1Click:Connect(function()
                 task.spawn(callback)
-                TweenService:Create(btn, TweenInfo.new(0.1), {BackgroundColor3 = Color3.fromRGB(40, 40, 50)}):Play()
-                task.wait(0.15)
-                TweenService:Create(btn, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(22, 22, 26)}):Play()
+                TweenService:Create(btn, TweenInfo.new(0.08), {BackgroundColor3 = Color3.fromRGB(45, 45, 60)}):Play()
+                task.wait(0.12)
+                TweenService:Create(btn, TweenInfo.new(0.12), {BackgroundColor3 = Color3.fromRGB(24, 24, 30)}):Play()
             end)
             return btn
         end
@@ -137,35 +120,38 @@ function Library.new(hubName)
             local toggled = default or false
 
             local btn = Instance.new("TextButton")
-            btn.Size = UDim2.new(1, 0, 0, 24)
-            btn.BackgroundColor3 = Color3.fromRGB(22, 22, 26)
-            btn.BorderSizePixel = 0
+            btn.Size = UDim2.new(1, 0, 0, 22)
+            btn.BackgroundColor3 = Color3.fromRGB(24, 24, 30)
+            btn.BorderSizePixel = 1
+            btn.BorderColor3 = Color3.fromRGB(38, 38, 48)
             btn.AutoButtonColor = false
             btn.Font = Enum.Font.SourceSans
             btn.Text = "  " .. text
-            btn.TextColor3 = Color3.fromRGB(180, 180, 180)
+            btn.TextColor3 = Color3.fromRGB(200, 200, 200)
             btn.TextSize = 12
             btn.TextXAlignment = Enum.TextXAlignment.Left
             btn.Parent = Container
 
-            local btnStroke = Instance.new("UIStroke")
-            btnStroke.Color = Color3.fromRGB(35, 35, 42)
-            btnStroke.Thickness = 1
-            btnStroke.Parent = btn
+            local checkbox = Instance.new("Frame")
+            checkbox.Size = UDim2.new(0, 14, 0, 14)
+            checkbox.Position = UDim2.new(1, -18, 0.5, -7)
+            checkbox.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
+            checkbox.BorderSizePixel = 1
+            checkbox.BorderColor3 = Color3.fromRGB(50, 50, 65)
+            checkbox.Parent = btn
 
-            local indicator = Instance.new("TextLabel")
-            indicator.Size = UDim2.new(0, 20, 0, 16)
-            indicator.Position = UDim2.new(1, -22, 0.5, -8)
-            indicator.BackgroundTransparency = 1
-            indicator.Font = Enum.Font.SourceSansBold
-            indicator.Text = toggled and "✓" or ""
-            indicator.TextColor3 = Color3.fromRGB(0, 255, 128)
-            indicator.TextSize = 14
-            indicator.Parent = btn
+            local checkmark = Instance.new("TextLabel")
+            checkmark.Size = UDim2.new(1, 0, 1, 0)
+            checkmark.BackgroundTransparency = 1
+            checkmark.Font = Enum.Font.SourceSansBold
+            checkmark.Text = toggled and "✓" or ""
+            checkmark.TextColor3 = Color3.fromRGB(0, 255, 120)
+            checkmark.TextSize = 13
+            checkmark.Parent = checkbox
 
             btn.MouseButton1Click:Connect(function()
                 toggled = not toggled
-                indicator.Text = toggled and "✓" or ""
+                checkmark.Text = toggled and "✓" or ""
                 pcall(callback, toggled)
             end)
             return btn
@@ -176,10 +162,10 @@ function Library.new(hubName)
             lbl.Size = UDim2.new(1, 0, 0, 20)
             lbl.BackgroundTransparency = 1
             lbl.Font = Enum.Font.SourceSansBold
-            lbl.Text = " " .. text
-            lbl.TextColor3 = Color3.fromRGB(130, 130, 145)
+            lbl.Text = text
+            lbl.TextColor3 = Color3.fromRGB(140, 140, 160)
             lbl.TextSize = 12
-            lbl.TextXAlignment = Enum.TextXAlignment.Left
+            lbl.TextXAlignment = Enum.TextXAlignment.Center
             lbl.Parent = Container
             return lbl
         end
