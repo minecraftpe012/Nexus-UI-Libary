@@ -52,7 +52,13 @@ local function loadConfig()
             return HttpService:JSONDecode(readfile(CONFIG_FILE))
         end)
         if success and type(decoded) == "table" then
-            return decoded
+            return {
+                Toggles = type(decoded.Toggles) == "table" and decoded.Toggles or {},
+                Sliders = type(decoded.Sliders) == "table" and decoded.Sliders or {},
+                TextBoxes = type(decoded.TextBoxes) == "table" and decoded.TextBoxes or {},
+                Keybind = decoded.Keybind,
+                WindowPos = decoded.WindowPos
+            }
         end
     end
     return { Toggles = {}, Sliders = {}, TextBoxes = {} }
@@ -303,12 +309,15 @@ function Library:CreateWindow(titleText, hubName, toggleKey)
         Library:Destroy()
     end)
 
-    -- Tab Bar
-    local TabBar = Instance.new("Frame")
+    -- Tab Bar (Scrollable Horizontal Frame)
+    local TabBar = Instance.new("ScrollingFrame")
     TabBar.Name = "TabBar"
     TabBar.Size = UDim2.new(1, -16, 0, 28)
     TabBar.Position = UDim2.new(0, 8, 0, 42)
     TabBar.BackgroundTransparency = 1
+    TabBar.BorderSizePixel = 0
+    TabBar.ScrollBarThickness = 0
+    TabBar.CanvasSize = UDim2.new(0, 0, 0, 0)
     TabBar.Parent = Window
 
     local TabLayout = Instance.new("UIListLayout")
@@ -316,6 +325,10 @@ function Library:CreateWindow(titleText, hubName, toggleKey)
     TabLayout.SortOrder = Enum.SortOrder.LayoutOrder
     TabLayout.Padding = UDim.new(0, 6)
     TabLayout.Parent = TabBar
+
+    TabLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        TabBar.CanvasSize = UDim2.new(0, TabLayout.AbsoluteContentSize.X + 6, 0, 0)
+    end)
 
     -- Content Container
     local ContentHolder = Instance.new("Frame")
@@ -393,13 +406,17 @@ function Library:CreateWindow(titleText, hubName, toggleKey)
         tabPage.ScrollBarImageColor3 = Theme.Border
         tabPage.Visible = false
         tabPage.CanvasSize = UDim2.new(0, 0, 0, 0)
-        tabPage.AutomaticCanvasSize = Enum.AutomaticSize.Y
         tabPage.Parent = ContentHolder
 
         local pageLayout = Instance.new("UIListLayout")
         pageLayout.SortOrder = Enum.SortOrder.LayoutOrder
         pageLayout.Padding = UDim.new(0, 6)
         pageLayout.Parent = tabPage
+
+        -- Dynamic Canvas Size recalculation on element insertion
+        pageLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+            tabPage.CanvasSize = UDim2.new(0, 0, 0, pageLayout.AbsoluteContentSize.Y + 10)
+        end)
 
         local tabAPI = {}
 
