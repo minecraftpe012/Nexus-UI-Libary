@@ -11,7 +11,7 @@ local NotifHolder = nil
 local currentKeybind = Enum.KeyCode.RightShift
 local isRebinding = false
 
--- Updated Theme: ToggleOff is Red when off, Accent is Green when on
+-- Theme: Accent is Green (ON), ToggleOff is Red (OFF)
 local Theme = {
     WindowBackground = Color3.fromRGB(18, 18, 18),
     HeaderBackground = Color3.fromRGB(25, 25, 25),
@@ -319,9 +319,17 @@ function Library:AddWindow(windowTitle)
         local box = Instance.new("Frame")
         box.Size = UDim2.new(0, 14, 0, 14)
         box.Position = UDim2.new(1, -18, 0.5, -7)
-        box.BackgroundColor3 = toggled and Theme.Accent or Theme.ToggleOff
         box.BorderSizePixel = 0
         box.Parent = btn
+
+        local function updateColor()
+            if toggled then
+                box.BackgroundColor3 = Theme.Accent   -- Green when ON
+            else
+                box.BackgroundColor3 = Theme.ToggleOff -- Red when OFF
+            end
+        end
+        updateColor()
 
         local boxCorner = Instance.new("UICorner")
         boxCorner.CornerRadius = UDim.new(0, 3)
@@ -329,7 +337,7 @@ function Library:AddWindow(windowTitle)
 
         btn.MouseButton1Click:Connect(function()
             toggled = not toggled
-            box.BackgroundColor3 = toggled and Theme.Accent or Theme.ToggleOff
+            updateColor()
             pcall(callback, toggled)
         end)
 
