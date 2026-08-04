@@ -123,9 +123,11 @@ local function initGui(hubName, toggleKey)
     if not isConnected then
         isConnected = true
         UserInputService.InputBegan:Connect(function(input, gameProcessed)
-            if input.KeyCode == currentKeybind and not gameProcessed then
-                if ScreenGui then
-                    ScreenGui.Enabled = not ScreenGui.Enabled
+            if not gameProcessed and input.UserInputType == Enum.UserInputType.Keyboard then
+                if input.KeyCode ~= Enum.KeyCode.Unknown and input.KeyCode == currentKeybind then
+                    if ScreenGui then
+                        ScreenGui.Enabled = not ScreenGui.Enabled
+                    end
                 end
             end
         end)
@@ -202,7 +204,7 @@ function Library:AddWindow(titleText, defaultPosition, hubName, toggleKey)
 
     local Window = Instance.new("Frame")
     Window.Name = titleText .. "Window"
-    Window.Size = UDim2.new(0, WINDOW_WIDTH, 0, 400)
+    Window.Size = UDim2.new(0, WINDOW_WIDTH, 0, 48)
     Window.Position = defaultPosition
     Window.BackgroundColor3 = Theme.WindowBackground
     Window.BorderSizePixel = 0
@@ -245,16 +247,12 @@ function Library:AddWindow(titleText, defaultPosition, hubName, toggleKey)
     CollapseBtn.TextSize = 18
     CollapseBtn.Parent = Header
 
-    local Container = Instance.new("ScrollingFrame")
+    local Container = Instance.new("Frame")
     Container.Name = "Container"
-    Container.Size = UDim2.new(1, -12, 1, -42)
+    Container.Size = UDim2.new(1, -12, 0, 0)
     Container.Position = UDim2.new(0, 6, 0, 38)
     Container.BackgroundTransparency = 1
     Container.BorderSizePixel = 0
-    Container.CanvasSize = UDim2.new(0, 0, 0, 0)
-    Container.AutomaticCanvasSize = Enum.AutomaticSize.Y
-    Container.ScrollBarThickness = 2
-    Container.ScrollBarImageColor3 = Color3.fromRGB(60, 60, 65)
     Container.Parent = Window
 
     local Layout = Instance.new("UIListLayout")
@@ -263,14 +261,23 @@ function Library:AddWindow(titleText, defaultPosition, hubName, toggleKey)
     Layout.Parent = Container
 
     local collapsed = false
-    local fullHeight = UDim2.new(0, WINDOW_WIDTH, 0, 400)
-    local collapsedHeight = UDim2.new(0, WINDOW_WIDTH, 0, 36)
+
+    local function updateWindowSize()
+        if collapsed then
+            Window.Size = UDim2.new(0, WINDOW_WIDTH, 0, 36)
+        else
+            local contentY = Layout.AbsoluteContentSize.Y
+            Window.Size = UDim2.new(0, WINDOW_WIDTH, 0, 36 + 12 + contentY)
+        end
+    end
+
+    Layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateWindowSize)
 
     CollapseBtn.MouseButton1Click:Connect(function()
         collapsed = not collapsed
         Container.Visible = not collapsed
         CollapseBtn.Text = collapsed and "+" or "-"
-        Window.Size = collapsed and collapsedHeight or fullHeight
+        updateWindowSize()
     end)
 
     local dragging, dragInput, dragStart, startPos
@@ -552,7 +559,7 @@ end
 function Library:CreateSettingsWindow()
     if settingsWindowInstance and settingsWindowInstance.Parent then return settingsWindowInstance end
 
-    local SettingsWin = self:AddWindow("Settings", UDim2.new(1, -230, 0, 50), "NexusUILibrary", currentKeybind)
+    local SettingsWin = self:AddWindow("Settings", nil, "NexusUILibrary", currentKeybind)
 
     SettingsWin:AddLabel("UI Configuration")
 
@@ -591,9 +598,10 @@ function Library:CreateSettingsWindow()
 
     local bindBtn = SettingsWin:AddButton("Toggle Key: " .. tostring(currentKeybind.Name), function()
         self:Notify("Keybind", "Press any keyboard key...", 3)
+        task.wait(0.1)
         local connection
         connection = UserInputService.InputBegan:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.Keyboard then
+            if input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode ~= Enum.KeyCode.Unknown then
                 currentKeybind = input.KeyCode
                 bindBtn.Text = "Toggle Key: " .. tostring(currentKeybind.Name)
                 self:Notify("Keybind", "Toggle key updated to " .. tostring(currentKeybind.Name), 3)
