@@ -4,7 +4,7 @@ local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = game:GetService("Players").LocalPlayer
 
-function Library.new(hubName)
+function Library.new(hubName, toggleKey)
     local ScreenGui = Instance.new("ScreenGui")
     ScreenGui.Name = hubName or "PepsiSwarmGUI"
     ScreenGui.ResetOnSpawn = false
@@ -21,6 +21,13 @@ function Library.new(hubName)
         end
     end
 
+    local boundKey = toggleKey or Enum.KeyCode.RightShift
+    UserInputService.InputBegan:Connect(function(input, gameProcessed)
+        if input.KeyCode == boundKey then
+            ScreenGui.Enabled = not ScreenGui.Enabled
+        end
+    end)
+
     local WindowManager = {}
 
     function WindowManager:AddWindow(titleText, defaultPosition)
@@ -28,20 +35,20 @@ function Library.new(hubName)
         Window.Name = titleText .. "Window"
         Window.Size = UDim2.new(0, 180, 0, 340)
         Window.Position = defaultPosition or UDim2.new(0, 50, 0, 50)
-        Window.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
+        Window.BackgroundColor3 = Color3.fromRGB(10, 10, 13)
         Window.BorderSizePixel = 1
-        Window.BorderColor3 = Color3.fromRGB(35, 35, 45)
+        Window.BorderColor3 = Color3.fromRGB(24, 24, 30)
         Window.Parent = ScreenGui
 
         local Header = Instance.new("TextButton")
         Header.Name = "Header"
         Header.Size = UDim2.new(1, 0, 0, 24)
-        Header.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
+        Header.BackgroundColor3 = Color3.fromRGB(15, 15, 19)
         Header.BorderSizePixel = 0
         Header.AutoButtonColor = false
         Header.Font = Enum.Font.SourceSansBold
         Header.Text = "  " .. titleText .. "  -"
-        Header.TextColor3 = Color3.fromRGB(240, 240, 240)
+        Header.TextColor3 = Color3.fromRGB(235, 235, 235)
         Header.TextSize = 13
         Header.TextXAlignment = Enum.TextXAlignment.Left
         Header.Parent = Window
@@ -55,7 +62,7 @@ function Library.new(hubName)
         Container.CanvasSize = UDim2.new(0, 0, 0, 0)
         Container.AutomaticCanvasSize = Enum.AutomaticSize.Y
         Container.ScrollBarThickness = 2
-        Container.ScrollBarImageColor3 = Color3.fromRGB(70, 70, 90)
+        Container.ScrollBarImageColor3 = Color3.fromRGB(55, 55, 70)
         Container.Parent = Window
 
         local Layout = Instance.new("UIListLayout")
@@ -96,9 +103,9 @@ function Library.new(hubName)
             callback = callback or function() end
             local btn = Instance.new("TextButton")
             btn.Size = UDim2.new(1, 0, 0, 22)
-            btn.BackgroundColor3 = Color3.fromRGB(24, 24, 30)
+            btn.BackgroundColor3 = Color3.fromRGB(13, 13, 17)
             btn.BorderSizePixel = 1
-            btn.BorderColor3 = Color3.fromRGB(38, 38, 48)
+            btn.BorderColor3 = Color3.fromRGB(24, 24, 30)
             btn.AutoButtonColor = false
             btn.Font = Enum.Font.SourceSans
             btn.Text = text
@@ -108,9 +115,9 @@ function Library.new(hubName)
 
             btn.MouseButton1Click:Connect(function()
                 task.spawn(callback)
-                TweenService:Create(btn, TweenInfo.new(0.08), {BackgroundColor3 = Color3.fromRGB(45, 45, 60)}):Play()
+                TweenService:Create(btn, TweenInfo.new(0.08), {BackgroundColor3 = Color3.fromRGB(30, 30, 40)}):Play()
                 task.wait(0.12)
-                TweenService:Create(btn, TweenInfo.new(0.12), {BackgroundColor3 = Color3.fromRGB(24, 24, 30)}):Play()
+                TweenService:Create(btn, TweenInfo.new(0.12), {BackgroundColor3 = Color3.fromRGB(13, 13, 17)}):Play()
             end)
             return btn
         end
@@ -121,9 +128,9 @@ function Library.new(hubName)
 
             local btn = Instance.new("TextButton")
             btn.Size = UDim2.new(1, 0, 0, 22)
-            btn.BackgroundColor3 = Color3.fromRGB(24, 24, 30)
+            btn.BackgroundColor3 = Color3.fromRGB(13, 13, 17)
             btn.BorderSizePixel = 1
-            btn.BorderColor3 = Color3.fromRGB(38, 38, 48)
+            btn.BorderColor3 = Color3.fromRGB(24, 24, 30)
             btn.AutoButtonColor = false
             btn.Font = Enum.Font.SourceSans
             btn.Text = "  " .. text
@@ -135,9 +142,9 @@ function Library.new(hubName)
             local checkbox = Instance.new("Frame")
             checkbox.Size = UDim2.new(0, 14, 0, 14)
             checkbox.Position = UDim2.new(1, -18, 0.5, -7)
-            checkbox.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
+            checkbox.BackgroundColor3 = Color3.fromRGB(8, 8, 11)
             checkbox.BorderSizePixel = 1
-            checkbox.BorderColor3 = Color3.fromRGB(50, 50, 65)
+            checkbox.BorderColor3 = Color3.fromRGB(35, 35, 45)
             checkbox.Parent = btn
 
             local checkmark = Instance.new("TextLabel")
@@ -163,7 +170,7 @@ function Library.new(hubName)
             lbl.BackgroundTransparency = 1
             lbl.Font = Enum.Font.SourceSansBold
             lbl.Text = text
-            lbl.TextColor3 = Color3.fromRGB(140, 140, 160)
+            lbl.TextColor3 = Color3.fromRGB(130, 130, 150)
             lbl.TextSize = 12
             lbl.TextXAlignment = Enum.TextXAlignment.Center
             lbl.Parent = Container
