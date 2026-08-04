@@ -8,38 +8,42 @@ local LocalPlayer = game:GetService("Players").LocalPlayer
 
 local ScreenGui = nil
 local NotifHolder = nil
-local isConnected = false
 local currentKeybind = Enum.KeyCode.RightShift
 local isRebinding = false
 
-local windowCount = 0
-local WINDOW_WIDTH = 220
-local WINDOW_PADDING = 12
-local START_X = 20
-local START_Y = 50
-
 local Theme = {
     WindowBackground = Color3.fromRGB(16, 16, 18),
-    HeaderBackground = Color3.fromRGB(16, 16, 18),
-    ElementBackground = Color3.fromRGB(26, 26, 30),
+    HeaderBackground = Color3.fromRGB(22, 22, 26),
+    TabBackground = Color3.fromRGB(24, 24, 28),
+    TabSelected = Color3.fromRGB(35, 35, 42),
+    ElementBackground = Color3.fromRGB(28, 28, 34),
     Accent = Color3.fromRGB(220, 35, 35),
-    ToggleOff = Color3.fromRGB(40, 40, 45),
+    ToggleOff = Color3.fromRGB(45, 45, 52),
     Text = Color3.fromRGB(255, 255, 255),
-    TextDim = Color3.fromRGB(180, 180, 180),
-    Border = Color3.fromRGB(35, 35, 40),
+    TextDim = Color3.fromRGB(170, 170, 170),
+    Border = Color3.fromRGB(38, 38, 45),
     FontBold = Enum.Font.SourceSansBold,
     FontRegular = Enum.Font.SourceSans
 }
 
 local togglesRegistry = {}
 local activeTogglesList = {}
+local activeConnections = {}
 local rgbEnabled = false
 local rgbConnection = nil
-local settingsWindowInstance = nil
-
 local CONFIG_FILE = "NexusUI_Config.json"
 
-local function saveConfig()
+-- Track global connections for clean destruction
+local function trackConnection(connection)
+    table.insert(activeConnections, connection)
+    return connection
+end
+
+--------------------------------------------------------------------------------
+-- CONFIG MANAGEMENT
+--------------------------------------------------------------------------------
+
+function Library:SaveConfig()
     local saveData = {}
     for name, state in pairs(togglesRegistry) do
         saveData[name] = state
@@ -68,28 +72,58 @@ end
 
 local savedConfigData = loadConfig()
 
+--------------------------------------------------------------------------------
+-- CLEANUP & DESTROY
+--------------------------------------------------------------------------------
+
 local function cleanupOldInstances()
     local possibleNames = {"NexusUILibrary", "PepsiSwarm", "PepsiSwarmGUI"}
     for _, parent in ipairs({CoreGui, LocalPlayer and LocalPlayer:FindFirstChild("PlayerGui")}) do
         if parent then
             for _, child in ipairs(parent:GetChildren()) do
-                if child:IsA("ScreenGui") then
-                    for _, name in ipairs(possibleNames) do
-                        if child.Name == name then
-                            child:Destroy()
-                        end
-                    end
+                if child:IsA("ScreenGui") and table.find(possibleNames, child.Name) then
+                    child:Destroy()
                 end
             end
         end
     end
 end
 
+function Library:Destroy()
+    -- Disconnect all tracked events
+    for _, conn in ipairs(activeConnections) do
+        if conn and conn.Connected then
+            conn:Disconnect()
+        end
+    end
+    table.clear(activeConnections)
+
+    if rgbConnection then
+        rgbConnection:Disconnect()
+        rgbConnection = nil
+    end
+
+    -- Destroy UI instance
+    if ScreenGui then
+        ScreenGui:Destroy()
+        ScreenGui = nil
+    end
+
+    -- Reset state variables
+    togglesRegistry = {}
+    activeTogglesList = {}
+    cleanupOldInstances()
+end
+
+--------------------------------------------------------------------------------
+-- INITIALIZATION
+--------------------------------------------------------------------------------
+
 local function initGui(hubName, toggleKey)
     local guiName = hubName or "NexusUILibrary"
     currentKeybind = toggleKey or currentKeybind
     
-    cleanupOldInstances()
+    Library:Destroy()
 
     ScreenGui = Instance.new("ScreenGui")
     ScreenGui.Name = guiName
@@ -121,23 +155,25 @@ local function initGui(hubName, toggleKey)
     layout.Padding = UDim.new(0, 6)
     layout.Parent = NotifHolder
 
-    if not isConnected then
-        isConnected = true
-        UserInputService.InputBegan:Connect(function(input, gameProcessed)
-            if gameProcessed or isRebinding then return end
-            if input.UserInputType == Enum.UserInputType.Keyboard then
-                if input.KeyCode ~= Enum.KeyCode.Unknown and input.KeyCode == currentKeybind then
-                    if ScreenGui then
-                        ScreenGui.Enabled = not ScreenGui.Enabled
-                    end
+    -- Global Toggle Keybind Connection
+    trackConnection(UserInputService.InputBegan:Connect(function(input, gameProcessed)
+        if gameProcessed or isRebinding then return end
+        if input.UserInputType == Enum.UserInputType.Keyboard then
+            if input.KeyCode ~= Enum.KeyCode.Unknown and input.KeyCode == currentKeybind then
+                if ScreenGui then
+                    ScreenGui.Enabled = not ScreenGui.Enabled
                 end
             end
-        end)
-    end
+        end
+    end))
 end
 
+--------------------------------------------------------------------------------
+-- NOTIFICATIONS
+--------------------------------------------------------------------------------
+
 function Library:Notify(title, text, duration)
-    if not ScreenGui or not ScreenGui.Parent or not NotifHolder or not NotifHolder.Parent then
+    if not ScreenGui or not ScreenGui.Parent then
         initGui("NexusUILibrary", currentKeybind)
     end
 
@@ -193,21 +229,19 @@ function Library:Notify(title, text, duration)
     end)
 end
 
-function Library:AddWindow(titleText, defaultPosition, hubName, toggleKey)
+--------------------------------------------------------------------------------
+-- WINDOW & TAB CREATION
+--------------------------------------------------------------------------------
+
+function Library:CreateWindow(titleText, hubName, toggleKey)
     if not ScreenGui then
         initGui(hubName, toggleKey)
     end
 
-    if not defaultPosition then
-        local xOffset = START_X + (windowCount * (WINDOW_WIDTH + WINDOW_PADDING))
-        defaultPosition = UDim2.new(0, xOffset, 0, START_Y)
-    end
-    windowCount = windowCount + 1
-
     local Window = Instance.new("Frame")
     Window.Name = titleText .. "Window"
-    Window.Size = UDim2.new(0, WINDOW_WIDTH, 0, 46)
-    Window.Position = defaultPosition
+    Window.Size = UDim2.new(0, 480, 0, 320)
+    Window.Position = UDim2.new(0.5, -240, 0.5, -160)
     Window.BackgroundColor3 = Theme.WindowBackground
     Window.BorderSizePixel = 0
     Window.Parent = ScreenGui
@@ -216,6 +250,7 @@ function Library:AddWindow(titleText, defaultPosition, hubName, toggleKey)
     WindowCorner.CornerRadius = UDim.new(0, 8)
     WindowCorner.Parent = Window
 
+    -- Header
     local Header = Instance.new("Frame")
     Header.Name = "Header"
     Header.Size = UDim2.new(1, 0, 0, 36)
@@ -228,63 +263,53 @@ function Library:AddWindow(titleText, defaultPosition, hubName, toggleKey)
     HeaderCorner.Parent = Header
 
     local TitleLabel = Instance.new("TextLabel")
-    TitleLabel.Size = UDim2.new(1, -40, 1, 0)
-    TitleLabel.Position = UDim2.new(0, 20, 0, 0)
+    TitleLabel.Size = UDim2.new(1, -70, 1, 0)
+    TitleLabel.Position = UDim2.new(0, 12, 0, 0)
     TitleLabel.BackgroundTransparency = 1
     TitleLabel.Font = Theme.FontBold
     TitleLabel.Text = titleText
     TitleLabel.TextColor3 = Theme.Text
-    TitleLabel.TextSize = 16
-    TitleLabel.TextXAlignment = Enum.TextXAlignment.Center
+    TitleLabel.TextSize = 15
+    TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
     TitleLabel.Parent = Header
 
-    local CollapseBtn = Instance.new("TextButton")
-    CollapseBtn.Size = UDim2.new(0, 24, 0, 24)
-    CollapseBtn.AnchorPoint = Vector2.new(1, 0.5)
-    CollapseBtn.Position = UDim2.new(1, -10, 0.5, 0)
-    CollapseBtn.BackgroundTransparency = 1
-    CollapseBtn.Font = Theme.FontBold
-    CollapseBtn.Text = "-"
-    CollapseBtn.TextColor3 = Theme.Text
-    CollapseBtn.TextSize = 18
-    CollapseBtn.Parent = Header
+    local CloseBtn = Instance.new("TextButton")
+    CloseBtn.Size = UDim2.new(0, 24, 0, 24)
+    CloseBtn.Position = UDim2.new(1, -30, 0.5, -12)
+    CloseBtn.BackgroundTransparency = 1
+    CloseBtn.Font = Theme.FontBold
+    CloseBtn.Text = "X"
+    CloseBtn.TextColor3 = Theme.Accent
+    CloseBtn.TextSize = 14
+    CloseBtn.Parent = Header
 
-    local Container = Instance.new("Frame")
-    Container.Name = "Container"
-    Container.Size = UDim2.new(1, -12, 0, 0)
-    Container.Position = UDim2.new(0, 6, 0, 38)
-    Container.BackgroundTransparency = 1
-    Container.BorderSizePixel = 0
-    Container.Parent = Window
-
-    local Layout = Instance.new("UIListLayout")
-    Layout.SortOrder = Enum.SortOrder.LayoutOrder
-    Layout.Padding = UDim.new(0, 5)
-    Layout.Parent = Container
-
-    local collapsed = false
-
-    local function updateWindowSize()
-        if collapsed then
-            Window.Size = UDim2.new(0, WINDOW_WIDTH, 0, 36)
-        else
-            local totalHeight = 0
-            for _, child in ipairs(Container:GetChildren()) do
-                if child:IsA("GuiObject") and child.Visible then
-                    totalHeight = totalHeight + child.Size.Y.Offset + Layout.Padding.Offset
-                end
-            end
-            Window.Size = UDim2.new(0, WINDOW_WIDTH, 0, 36 + 10 + totalHeight)
-        end
-    end
-
-    CollapseBtn.MouseButton1Click:Connect(function()
-        collapsed = not collapsed
-        Container.Visible = not collapsed
-        CollapseBtn.Text = collapsed and "+" or "-"
-        updateWindowSize()
+    CloseBtn.MouseButton1Click:Connect(function()
+        Library:Destroy()
     end)
 
+    -- Tab Bar (Top Navigation)
+    local TabBar = Instance.new("Frame")
+    TabBar.Name = "TabBar"
+    TabBar.Size = UDim2.new(1, -16, 0, 28)
+    TabBar.Position = UDim2.new(0, 8, 0, 42)
+    TabBar.BackgroundTransparency = 1
+    TabBar.Parent = Window
+
+    local TabLayout = Instance.new("UIListLayout")
+    TabLayout.FillDirection = Enum.FillDirection.Horizontal
+    TabLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    TabLayout.Padding = UDim.new(0, 6)
+    TabLayout.Parent = TabBar
+
+    -- Content Container
+    local ContentHolder = Instance.new("Frame")
+    ContentHolder.Name = "ContentHolder"
+    ContentHolder.Size = UDim2.new(1, -16, 1, -80)
+    ContentHolder.Position = UDim2.new(0, 8, 0, 74)
+    ContentHolder.BackgroundTransparency = 1
+    ContentHolder.Parent = Window
+
+    -- Dragging Logic
     local dragging, dragInput, dragStart, startPos
     Header.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -305,332 +330,398 @@ function Library:AddWindow(titleText, defaultPosition, hubName, toggleKey)
         end
     end)
 
-    UserInputService.InputChanged:Connect(function(input)
+    trackConnection(UserInputService.InputChanged:Connect(function(input)
         if input == dragInput and dragging then
             local delta = input.Position - dragStart
             Window.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
         end
-    end)
+    end))
 
-    local windowAPI = {}
+    ----------------------------------------------------------------------------
+    -- TAB MANAGEMENT API
+    ----------------------------------------------------------------------------
 
-    function windowAPI:Notify(title, text, duration)
-        Library:Notify(title, text, duration)
-    end
+    local windowAPI = {
+        Tabs = {},
+        ActiveTab = nil
+    }
 
-    function windowAPI:AddButton(text, callback)
-        callback = callback or function() end
-        local btn = Instance.new("TextButton")
-        btn.Size = UDim2.new(1, 0, 0, 28)
-        btn.BackgroundColor3 = Theme.ElementBackground
-        btn.BorderSizePixel = 0
-        btn.AutoButtonColor = false
-        btn.Font = Theme.FontBold
-        btn.Text = text
-        btn.TextColor3 = Theme.Text
-        btn.TextSize = 13
-        btn.Parent = Container
+    function windowAPI:CreateTab(tabName)
+        local tabBtn = Instance.new("TextButton")
+        tabBtn.Size = UDim2.new(0, 100, 1, 0)
+        tabBtn.BackgroundColor3 = Theme.TabBackground
+        tabBtn.BorderSizePixel = 0
+        tabBtn.Font = Theme.FontBold
+        tabBtn.Text = tabName
+        tabBtn.TextColor3 = Theme.TextDim
+        tabBtn.TextSize = 13
+        tabBtn.Parent = TabBar
 
-        local btnCorner = Instance.new("UICorner")
-        btnCorner.CornerRadius = UDim.new(0, 5)
-        btnCorner.Parent = btn
+        local tabCorner = Instance.new("UICorner")
+        tabCorner.CornerRadius = UDim.new(0, 5)
+        tabCorner.Parent = tabBtn
 
-        btn.MouseButton1Click:Connect(function()
-            task.spawn(callback)
-            TweenService:Create(btn, TweenInfo.new(0.08), {BackgroundColor3 = Color3.fromRGB(45, 45, 50)}):Play()
-            task.wait(0.12)
-            TweenService:Create(btn, TweenInfo.new(0.12), {BackgroundColor3 = Theme.ElementBackground}):Play()
-        end)
+        local tabPage = Instance.new("ScrollingFrame")
+        tabPage.Name = tabName .. "Page"
+        tabPage.Size = UDim2.new(1, 0, 1, 0)
+        tabPage.BackgroundTransparency = 1
+        tabPage.BorderSizePixel = 0
+        tabPage.ScrollBarThickness = 3
+        tabPage.ScrollBarImageColor3 = Theme.Border
+        tabPage.Visible = false
+        tabPage.CanvasSize = UDim2.new(0, 0, 0, 0)
+        tabPage.AutomaticCanvasSize = Enum.AutomaticSize.Y
+        tabPage.Parent = ContentHolder
 
-        updateWindowSize()
-        return btn
-    end
+        local pageLayout = Instance.new("UIListLayout")
+        pageLayout.SortOrder = Enum.SortOrder.LayoutOrder
+        pageLayout.Padding = UDim.new(0, 6)
+        pageLayout.Parent = tabPage
 
-    function windowAPI:AddToggle(text, default, callback)
-        callback = callback or function() end
-        local savedVal = savedConfigData[text]
-        local toggled = (savedVal ~= nil) and savedVal or (default or false)
-        
-        togglesRegistry[text] = toggled
+        local tabAPI = {}
 
-        local btn = Instance.new("TextButton")
-        btn.Size = UDim2.new(1, 0, 0, 32)
-        btn.BackgroundColor3 = Theme.ElementBackground
-        btn.BorderSizePixel = 0
-        btn.AutoButtonColor = false
-        btn.Font = Theme.FontBold
-        btn.Text = "  " .. text
-        btn.TextColor3 = Theme.Text
-        btn.TextSize = 13
-        btn.TextXAlignment = Enum.TextXAlignment.Left
-        btn.Parent = Container
-
-        local btnCorner = Instance.new("UICorner")
-        btnCorner.CornerRadius = UDim.new(0, 5)
-        btnCorner.Parent = btn
-
-        local checkbox = Instance.new("Frame")
-        checkbox.Size = UDim2.new(0, 16, 0, 16)
-        checkbox.Position = UDim2.new(1, -22, 0.5, -8)
-        checkbox.BorderSizePixel = 0
-        checkbox.Parent = btn
-
-        local boxCorner = Instance.new("UICorner")
-        boxCorner.CornerRadius = UDim.new(0, 3)
-        boxCorner.Parent = checkbox
-
-        local function updateVisuals(tweenTime)
-            local targetColor = toggled and Theme.Accent or Theme.ToggleOff
-            TweenService:Create(checkbox, TweenInfo.new(tweenTime or 0.15), {
-                BackgroundColor3 = targetColor
-            }):Play()
+        local function activateTab()
+            for _, t in pairs(windowAPI.Tabs) do
+                t.Page.Visible = false
+                t.Button.BackgroundColor3 = Theme.TabBackground
+                t.Button.TextColor3 = Theme.TextDim
+            end
+            tabPage.Visible = true
+            tabBtn.BackgroundColor3 = Theme.TabSelected
+            tabBtn.TextColor3 = Theme.Text
+            windowAPI.ActiveTab = tabAPI
         end
 
-        table.insert(activeTogglesList, {
-            frame = checkbox,
-            getToggled = function() return toggled end,
-            update = updateVisuals
-        })
+        tabBtn.MouseButton1Click:Connect(activateTab)
 
-        updateVisuals(0)
-        if toggled then
-            task.spawn(function()
-                pcall(callback, toggled)
+        table.insert(windowAPI.Tabs, {Button = tabBtn, Page = tabPage})
+
+        -- Auto select first tab
+        if #windowAPI.Tabs == 1 then
+            activateTab()
+        end
+
+        ------------------------------------------------------------------------
+        -- TAB ELEMENT BUILDERS
+        ------------------------------------------------------------------------
+
+        function tabAPI:AddButton(text, callback)
+            callback = callback or function() end
+            local btn = Instance.new("TextButton")
+            btn.Size = UDim2.new(1, -6, 0, 30)
+            btn.BackgroundColor3 = Theme.ElementBackground
+            btn.BorderSizePixel = 0
+            btn.AutoButtonColor = false
+            btn.Font = Theme.FontBold
+            btn.Text = text
+            btn.TextColor3 = Theme.Text
+            btn.TextSize = 13
+            btn.Parent = tabPage
+
+            local btnCorner = Instance.new("UICorner")
+            btnCorner.CornerRadius = UDim.new(0, 5)
+            btnCorner.Parent = btn
+
+            btn.MouseButton1Click:Connect(function()
+                task.spawn(callback)
+                TweenService:Create(btn, TweenInfo.new(0.08), {BackgroundColor3 = Color3.fromRGB(45, 45, 50)}):Play()
+                task.wait(0.12)
+                TweenService:Create(btn, TweenInfo.new(0.12), {BackgroundColor3 = Theme.ElementBackground}):Play()
             end)
+
+            return btn
         end
 
-        btn.MouseButton1Click:Connect(function()
-            toggled = not toggled
+        function tabAPI:AddToggle(text, default, callback)
+            callback = callback or function() end
+            local savedVal = savedConfigData[text]
+            local toggled = (savedVal ~= nil) and savedVal or (default or false)
+            
             togglesRegistry[text] = toggled
-            updateVisuals(0.15)
-            pcall(callback, toggled)
-            saveConfig()
-        end)
 
-        updateWindowSize()
-        return btn
-    end
+            local btn = Instance.new("TextButton")
+            btn.Size = UDim2.new(1, -6, 0, 32)
+            btn.BackgroundColor3 = Theme.ElementBackground
+            btn.BorderSizePixel = 0
+            btn.AutoButtonColor = false
+            btn.Font = Theme.FontBold
+            btn.Text = "  " .. text
+            btn.TextColor3 = Theme.Text
+            btn.TextSize = 13
+            btn.TextXAlignment = Enum.TextXAlignment.Left
+            btn.Parent = tabPage
 
-    function windowAPI:AddSlider(text, min, max, default, callback)
-        callback = callback or function() end
-        min = min or 0
-        max = max or 100
-        default = math.clamp(default or min, min, max)
+            local btnCorner = Instance.new("UICorner")
+            btnCorner.CornerRadius = UDim.new(0, 5)
+            btnCorner.Parent = btn
 
-        local sliderFrame = Instance.new("Frame")
-        sliderFrame.Size = UDim2.new(1, 0, 0, 42)
-        sliderFrame.BackgroundColor3 = Theme.ElementBackground
-        sliderFrame.BorderSizePixel = 0
-        sliderFrame.Parent = Container
+            local checkbox = Instance.new("Frame")
+            checkbox.Size = UDim2.new(0, 16, 0, 16)
+            checkbox.Position = UDim2.new(1, -22, 0.5, -8)
+            checkbox.BorderSizePixel = 0
+            checkbox.Parent = btn
 
-        local sliderCorner = Instance.new("UICorner")
-        sliderCorner.CornerRadius = UDim.new(0, 5)
-        sliderCorner.Parent = sliderFrame
+            local boxCorner = Instance.new("UICorner")
+            boxCorner.CornerRadius = UDim.new(0, 3)
+            boxCorner.Parent = checkbox
 
-        local label = Instance.new("TextLabel")
-        label.Size = UDim2.new(0.7, 0, 0, 20)
-        label.Position = UDim2.new(0, 8, 0, 2)
-        label.BackgroundTransparency = 1
-        label.Font = Theme.FontBold
-        label.Text = text
-        label.TextColor3 = Theme.Text
-        label.TextSize = 13
-        label.TextXAlignment = Enum.TextXAlignment.Left
-        label.Parent = sliderFrame
+            local function updateVisuals(tweenTime)
+                local targetColor = toggled and Theme.Accent or Theme.ToggleOff
+                TweenService:Create(checkbox, TweenInfo.new(tweenTime or 0.15), {
+                    BackgroundColor3 = targetColor
+                }):Play()
+            end
 
-        local valueLabel = Instance.new("TextLabel")
-        valueLabel.Size = UDim2.new(0.3, -8, 0, 20)
-        valueLabel.Position = UDim2.new(0.7, 0, 0, 2)
-        valueLabel.BackgroundTransparency = 1
-        valueLabel.Font = Theme.FontBold
-        valueLabel.Text = tostring(default)
-        valueLabel.TextColor3 = Theme.Text
-        valueLabel.TextSize = 13
-        valueLabel.TextXAlignment = Enum.TextXAlignment.Right
-        valueLabel.Parent = sliderFrame
+            table.insert(activeTogglesList, {
+                frame = checkbox,
+                getToggled = function() return toggled end,
+                update = updateVisuals
+            })
 
-        local barBg = Instance.new("Frame")
-        barBg.Size = UDim2.new(1, -16, 0, 10)
-        barBg.Position = UDim2.new(0, 8, 0, 24)
-        barBg.BackgroundColor3 = Theme.ToggleOff
-        barBg.BorderSizePixel = 0
-        barBg.Parent = sliderFrame
+            updateVisuals(0)
+            if toggled then
+                task.spawn(function()
+                    pcall(callback, toggled)
+                end)
+            end
 
-        local barCorner = Instance.new("UICorner")
-        barCorner.CornerRadius = UDim.new(0, 3)
-        barCorner.Parent = barBg
+            btn.MouseButton1Click:Connect(function()
+                toggled = not toggled
+                togglesRegistry[text] = toggled
+                updateVisuals(0.15)
+                pcall(callback, toggled)
+                Library:SaveConfig()
+            end)
 
-        local fillBar = Instance.new("Frame")
-        fillBar.Size = UDim2.new((default - min) / (max - min), 0, 1, 0)
-        fillBar.BackgroundColor3 = Theme.Accent
-        fillBar.BorderSizePixel = 0
-        fillBar.Parent = barBg
-
-        local fillCorner = Instance.new("UICorner")
-        fillCorner.CornerRadius = UDim.new(0, 3)
-        fillCorner.Parent = fillBar
-
-        local sliderActive = false
-
-        local function updateSlider(input)
-            local pct = math.clamp((input.Position.X - barBg.AbsolutePosition.X) / barBg.AbsoluteSize.X, 0, 1)
-            local val = math.floor((min + (max - min) * pct) * 10) / 10
-            fillBar.Size = UDim2.new(pct, 0, 1, 0)
-            valueLabel.Text = tostring(val)
-            pcall(callback, val)
+            return btn
         end
 
-        barBg.InputBegan:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-                sliderActive = true
-                updateSlider(input)
-            end
-        end)
+        function tabAPI:AddSlider(text, min, max, default, callback)
+            callback = callback or function() end
+            min = min or 0
+            max = max or 100
+            default = math.clamp(default or min, min, max)
 
-        UserInputService.InputChanged:Connect(function(input)
-            if sliderActive and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-                updateSlider(input)
-            end
-        end)
+            local sliderFrame = Instance.new("Frame")
+            sliderFrame.Size = UDim2.new(1, -6, 0, 42)
+            sliderFrame.BackgroundColor3 = Theme.ElementBackground
+            sliderFrame.BorderSizePixel = 0
+            sliderFrame.Parent = tabPage
 
-        UserInputService.InputEnded:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-                sliderActive = false
-            end
-        end)
+            local sliderCorner = Instance.new("UICorner")
+            sliderCorner.CornerRadius = UDim.new(0, 5)
+            sliderCorner.Parent = sliderFrame
 
-        updateWindowSize()
-        return sliderFrame
+            local label = Instance.new("TextLabel")
+            label.Size = UDim2.new(0.7, 0, 0, 20)
+            label.Position = UDim2.new(0, 8, 0, 2)
+            label.BackgroundTransparency = 1
+            label.Font = Theme.FontBold
+            label.Text = text
+            label.TextColor3 = Theme.Text
+            label.TextSize = 13
+            label.TextXAlignment = Enum.TextXAlignment.Left
+            label.Parent = sliderFrame
+
+            local valueLabel = Instance.new("TextLabel")
+            valueLabel.Size = UDim2.new(0.3, -8, 0, 20)
+            valueLabel.Position = UDim2.new(0.7, 0, 0, 2)
+            valueLabel.BackgroundTransparency = 1
+            valueLabel.Font = Theme.FontBold
+            valueLabel.Text = tostring(default)
+            valueLabel.TextColor3 = Theme.Text
+            valueLabel.TextSize = 13
+            valueLabel.TextXAlignment = Enum.TextXAlignment.Right
+            valueLabel.Parent = sliderFrame
+
+            local barBg = Instance.new("Frame")
+            barBg.Size = UDim2.new(1, -16, 0, 10)
+            barBg.Position = UDim2.new(0, 8, 0, 24)
+            barBg.BackgroundColor3 = Theme.ToggleOff
+            barBg.BorderSizePixel = 0
+            barBg.Parent = sliderFrame
+
+            local barCorner = Instance.new("UICorner")
+            barCorner.CornerRadius = UDim.new(0, 3)
+            barCorner.Parent = barBg
+
+            local fillBar = Instance.new("Frame")
+            fillBar.Size = UDim2.new((default - min) / (max - min), 0, 1, 0)
+            fillBar.BackgroundColor3 = Theme.Accent
+            fillBar.BorderSizePixel = 0
+            fillBar.Parent = barBg
+
+            local fillCorner = Instance.new("UICorner")
+            fillCorner.CornerRadius = UDim.new(0, 3)
+            fillCorner.Parent = fillBar
+
+            local sliderActive = false
+
+            local function updateSlider(input)
+                local pct = math.clamp((input.Position.X - barBg.AbsolutePosition.X) / barBg.AbsoluteSize.X, 0, 1)
+                local val = math.floor((min + (max - min) * pct) * 10) / 10
+                fillBar.Size = UDim2.new(pct, 0, 1, 0)
+                valueLabel.Text = tostring(val)
+                pcall(callback, val)
+            end
+
+            barBg.InputBegan:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                    sliderActive = true
+                    updateSlider(input)
+                end
+            end)
+
+            trackConnection(UserInputService.InputChanged:Connect(function(input)
+                if sliderActive and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+                    updateSlider(input)
+                end
+            end))
+
+            trackConnection(UserInputService.InputEnded:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                    sliderActive = false
+                end
+            end))
+
+            return sliderFrame
+        end
+
+        function tabAPI:AddTextBox(text, defaultText, callback)
+            callback = callback or function() end
+
+            local boxFrame = Instance.new("Frame")
+            boxFrame.Size = UDim2.new(1, -6, 0, 32)
+            boxFrame.BackgroundColor3 = Theme.ElementBackground
+            boxFrame.BorderSizePixel = 0
+            boxFrame.Parent = tabPage
+
+            local corner = Instance.new("UICorner")
+            corner.CornerRadius = UDim.new(0, 5)
+            corner.Parent = boxFrame
+
+            local label = Instance.new("TextLabel")
+            label.Size = UDim2.new(0.55, 0, 1, 0)
+            label.Position = UDim2.new(0, 8, 0, 0)
+            label.BackgroundTransparency = 1
+            label.Font = Theme.FontBold
+            label.Text = text
+            label.TextColor3 = Theme.Text
+            label.TextSize = 13
+            label.TextXAlignment = Enum.TextXAlignment.Left
+            label.Parent = boxFrame
+
+            local textBox = Instance.new("TextBox")
+            textBox.Size = UDim2.new(0.4, -6, 0, 22)
+            textBox.Position = UDim2.new(0.6, 0, 0.5, -11)
+            textBox.BackgroundColor3 = Theme.ToggleOff
+            textBox.BorderSizePixel = 0
+            textBox.Font = Theme.FontBold
+            textBox.Text = defaultText or ""
+            textBox.TextColor3 = Theme.Text
+            textBox.TextSize = 12
+            textBox.Parent = boxFrame
+
+            local boxCorner = Instance.new("UICorner")
+            boxCorner.CornerRadius = UDim.new(0, 4)
+            boxCorner.Parent = textBox
+
+            textBox.FocusLost:Connect(function(enterPressed)
+                pcall(callback, textBox.Text, enterPressed)
+            end)
+
+            return boxFrame
+        end
+
+        function tabAPI:AddLabel(text)
+            local lbl = Instance.new("TextLabel")
+            lbl.Size = UDim2.new(1, -6, 0, 22)
+            lbl.BackgroundTransparency = 1
+            lbl.Font = Theme.FontBold
+            lbl.Text = text
+            lbl.TextColor3 = Theme.TextDim
+            lbl.TextSize = 13
+            lbl.TextXAlignment = Enum.TextXAlignment.Center
+            lbl.Parent = tabPage
+
+            return lbl
+        end
+
+        return tabAPI
     end
 
-    function windowAPI:AddTextBox(text, defaultText, callback)
-        callback = callback or function() end
+    ----------------------------------------------------------------------------
+    -- SETTINGS TAB LAYOUT GENERATOR
+    ----------------------------------------------------------------------------
 
-        local boxFrame = Instance.new("Frame")
-        boxFrame.Size = UDim2.new(1, 0, 0, 32)
-        boxFrame.BackgroundColor3 = Theme.ElementBackground
-        boxFrame.BorderSizePixel = 0
-        boxFrame.Parent = Container
+    function windowAPI:CreateSettingsTab()
+        local SettingsTab = self:CreateTab("Settings")
 
-        local corner = Instance.new("UICorner")
-        corner.CornerRadius = UDim.new(0, 5)
-        corner.Parent = boxFrame
+        SettingsTab:AddLabel("UI Configuration")
 
-        local label = Instance.new("TextLabel")
-        label.Size = UDim2.new(0.55, 0, 1, 0)
-        label.Position = UDim2.new(0, 8, 0, 0)
-        label.BackgroundTransparency = 1
-        label.Font = Theme.FontBold
-        label.Text = text
-        label.TextColor3 = Theme.Text
-        label.TextSize = 13
-        label.TextXAlignment = Enum.TextXAlignment.Left
-        label.Parent = boxFrame
-
-        local textBox = Instance.new("TextBox")
-        textBox.Size = UDim2.new(0.4, -6, 0, 22)
-        textBox.Position = UDim2.new(0.6, 0, 0.5, -11)
-        textBox.BackgroundColor3 = Theme.ToggleOff
-        textBox.BorderSizePixel = 0
-        textBox.Font = Theme.FontBold
-        textBox.Text = defaultText or ""
-        textBox.TextColor3 = Theme.Text
-        textBox.TextSize = 12
-        textBox.Parent = boxFrame
-
-        local boxCorner = Instance.new("UICorner")
-        boxCorner.CornerRadius = UDim.new(0, 4)
-        boxCorner.Parent = textBox
-
-        textBox.FocusLost:Connect(function(enterPressed)
-            pcall(callback, textBox.Text, enterPressed)
+        SettingsTab:AddToggle("RGB Theme", false, function(state)
+            rgbEnabled = state
+            if rgbEnabled then
+                rgbConnection = RunService.RenderStepped:Connect(function()
+                    local hue = tick() % 5 / 5
+                    Theme.Accent = Color3.fromHSV(hue, 0.9, 1)
+                    for _, item in ipairs(activeTogglesList) do
+                        if item.frame and item.frame.Parent and item.getToggled() then
+                            item.frame.BackgroundColor3 = Theme.Accent
+                        end
+                    end
+                end)
+            else
+                if rgbConnection then
+                    rgbConnection:Disconnect()
+                    rgbConnection = nil
+                end
+                Theme.Accent = Color3.fromRGB(220, 35, 35)
+                for _, item in ipairs(activeTogglesList) do
+                    if item.frame and item.frame.Parent then
+                        item.update(0.15)
+                    end
+                end
+            end
         end)
 
-        updateWindowSize()
-        return boxFrame
-    end
+        SettingsTab:AddLabel("Keybind & Config Manager")
 
-    function windowAPI:AddLabel(text)
-        local lbl = Instance.new("TextLabel")
-        lbl.Size = UDim2.new(1, 0, 0, 22)
-        lbl.BackgroundTransparency = 1
-        lbl.Font = Theme.FontBold
-        lbl.Text = text
-        lbl.TextColor3 = Theme.TextDim
-        lbl.TextSize = 13
-        lbl.TextXAlignment = Enum.TextXAlignment.Center
-        lbl.Parent = Container
+        local bindBtn
+        bindBtn = SettingsTab:AddButton("Toggle Key: " .. tostring(currentKeybind.Name), function()
+            if isRebinding then return end
+            isRebinding = true
+            Library:Notify("Keybind", "Press any key...", 2)
 
-        updateWindowSize()
-        return lbl
+            local connection
+            connection = UserInputService.InputBegan:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode ~= Enum.KeyCode.Unknown then
+                    currentKeybind = input.KeyCode
+                    bindBtn.Text = "Toggle Key: " .. tostring(currentKeybind.Name)
+                    Library:Notify("Keybind", "Key set to " .. tostring(currentKeybind.Name), 2)
+                    connection:Disconnect()
+                    task.delay(0.2, function()
+                        isRebinding = false
+                    end)
+                end
+            end)
+        end)
+
+        SettingsTab:AddButton("Save Config File", function()
+            Library:SaveConfig()
+            Library:Notify("Settings", "Configuration saved!", 2)
+        end)
+
+        SettingsTab:AddLabel("Script Controls")
+
+        SettingsTab:AddButton("Destroy UI", function()
+            Library:Destroy()
+        end)
+
+        return SettingsTab
     end
 
     return windowAPI
-end
-
-function Library:CreateSettingsWindow()
-    if settingsWindowInstance then return settingsWindowInstance end
-
-    local SettingsWin = self:AddWindow("Settings", nil, "NexusUILibrary", currentKeybind)
-
-    SettingsWin:AddLabel("UI Configuration")
-
-    SettingsWin:AddToggle("RGB Theme", false, function(state)
-        rgbEnabled = state
-        if rgbEnabled then
-            rgbConnection = RunService.RenderStepped:Connect(function()
-                local hue = tick() % 5 / 5
-                Theme.Accent = Color3.fromHSV(hue, 0.9, 1)
-                for _, item in ipairs(activeTogglesList) do
-                    if item.frame and item.frame.Parent and item.getToggled() then
-                        item.frame.BackgroundColor3 = Theme.Accent
-                    end
-                end
-            end)
-        else
-            if rgbConnection then
-                rgbConnection:Disconnect()
-                rgbConnection = nil
-            end
-            Theme.Accent = Color3.fromRGB(220, 35, 35)
-            for _, item in ipairs(activeTogglesList) do
-                if item.frame and item.frame.Parent then
-                    item.update(0.15)
-                end
-            end
-        end
-    end)
-
-    SettingsWin:AddButton("Save Config File", function()
-        saveConfig()
-        self:Notify("Settings", "Configuration saved to file!", 3)
-    end)
-
-    SettingsWin:AddLabel("Keybind Manager")
-
-    -- Fix: Declare bindBtn prior to assignment so the click callback closure captures it
-    local bindBtn
-    bindBtn = SettingsWin:AddButton("Toggle Key: " .. tostring(currentKeybind.Name), function()
-        if isRebinding then return end
-        isRebinding = true
-        self:Notify("Keybind", "Press any key...", 2)
-
-        local connection
-        connection = UserInputService.InputBegan:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode ~= Enum.KeyCode.Unknown then
-                currentKeybind = input.KeyCode
-                bindBtn.Text = "Toggle Key: " .. tostring(currentKeybind.Name)
-                self:Notify("Keybind", "Key set to " .. tostring(currentKeybind.Name), 2)
-                connection:Disconnect()
-                task.delay(0.2, function()
-                    isRebinding = false
-                end)
-            end
-        end)
-    end)
-
-    settingsWindowInstance = SettingsWin
-    return SettingsWin
 end
 
 return Library
