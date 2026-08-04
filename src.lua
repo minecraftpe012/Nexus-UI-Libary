@@ -11,10 +11,23 @@ local NotifHolder = nil
 local isConnected = false
 local currentKeybind = Enum.KeyCode.RightShift
 
--- Configuration and Theme State
+-- Visual Styling Config (Matching Screenshot)
+local Theme = {
+    WindowBackground = Color3.fromRGB(16, 16, 18),
+    HeaderBackground = Color3.fromRGB(16, 16, 18),
+    ElementBackground = Color3.fromRGB(26, 26, 30),
+    Accent = Color3.fromRGB(220, 35, 35), -- Dark crimson red from screenshot
+    ToggleOff = Color3.fromRGB(40, 40, 45),
+    Text = Color3.fromRGB(255, 255, 255),
+    TextDim = Color3.fromRGB(180, 180, 180),
+    Border = Color3.fromRGB(35, 35, 40),
+    FontBold = Enum.Font.SourceSansBold,
+    FontRegular = Enum.Font.SourceSans
+}
+
+-- Configuration State
 local togglesRegistry = {}
 local activeTogglesList = {}
-local currentAccent = Color3.fromRGB(0, 200, 80)
 local rgbEnabled = false
 local rgbConnection = nil
 local settingsWindowInstance = nil
@@ -67,9 +80,6 @@ local function cleanupOldInstances()
     end
 end
 
--- Forward declaration
-local createSettingsWindow
-
 local function initGui(hubName, toggleKey)
     local guiName = hubName or "NexusUILibrary"
     currentKeybind = toggleKey or currentKeybind
@@ -116,14 +126,6 @@ local function initGui(hubName, toggleKey)
             end
         end)
     end
-
-    -- Automatically spawn settings window on the right side if not already created
-    task.spawn(function()
-        task.wait(0.05)
-        if not settingsWindowInstance then
-            Library:CreateSettingsWindow()
-        end
-    end)
 end
 
 function Library:Notify(title, text, duration)
@@ -137,8 +139,8 @@ function Library:Notify(title, text, duration)
 
     local notif = Instance.new("Frame")
     notif.Size = UDim2.new(1, 0, 0, 56)
-    notif.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-    notif.BorderColor3 = Color3.fromRGB(50, 50, 50)
+    notif.BackgroundColor3 = Theme.WindowBackground
+    notif.BorderColor3 = Theme.Border
     notif.BorderSizePixel = 1
     notif.BackgroundTransparency = 1
     notif.Parent = NotifHolder
@@ -151,9 +153,9 @@ function Library:Notify(title, text, duration)
     titleLabel.Size = UDim2.new(1, -20, 0, 20)
     titleLabel.Position = UDim2.new(0, 10, 0, 6)
     titleLabel.BackgroundTransparency = 1
-    titleLabel.Font = Enum.Font.SourceSansBold
+    titleLabel.Font = Theme.FontBold
     titleLabel.Text = title
-    titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    titleLabel.TextColor3 = Theme.Text
     titleLabel.TextSize = 14
     titleLabel.TextXAlignment = Enum.TextXAlignment.Left
     titleLabel.Parent = notif
@@ -162,9 +164,9 @@ function Library:Notify(title, text, duration)
     textLabel.Size = UDim2.new(1, -20, 0, 24)
     textLabel.Position = UDim2.new(0, 10, 0, 26)
     textLabel.BackgroundTransparency = 1
-    textLabel.Font = Enum.Font.SourceSans
+    textLabel.Font = Theme.FontRegular
     textLabel.Text = text
-    textLabel.TextColor3 = Color3.fromRGB(190, 190, 190)
+    textLabel.TextColor3 = Theme.TextDim
     textLabel.TextSize = 12
     textLabel.TextXAlignment = Enum.TextXAlignment.Left
     textLabel.TextWrapped = true
@@ -190,88 +192,79 @@ function Library:AddWindow(titleText, defaultPosition, hubName, toggleKey)
 
     local Window = Instance.new("Frame")
     Window.Name = titleText .. "Window"
-    Window.Size = UDim2.new(0, 220, 0, 380)
+    Window.Size = UDim2.new(0, 220, 0, 400)
     Window.Position = defaultPosition or UDim2.new(0, 50, 0, 50)
-    Window.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-    Window.BorderSizePixel = 1
-    Window.BorderColor3 = Color3.fromRGB(45, 45, 45)
+    Window.BackgroundColor3 = Theme.WindowBackground
+    Window.BorderSizePixel = 0
     Window.Parent = ScreenGui
 
     local WindowCorner = Instance.new("UICorner")
-    WindowCorner.CornerRadius = UDim.new(0, 6)
+    WindowCorner.CornerRadius = UDim.new(0, 8)
     WindowCorner.Parent = Window
 
     local Header = Instance.new("Frame")
     Header.Name = "Header"
-    Header.Size = UDim2.new(1, 0, 0, 30)
-    Header.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    Header.Size = UDim2.new(1, 0, 0, 36)
+    Header.BackgroundColor3 = Theme.HeaderBackground
     Header.BorderSizePixel = 0
     Header.Parent = Window
 
     local HeaderCorner = Instance.new("UICorner")
-    HeaderCorner.CornerRadius = UDim.new(0, 6)
+    HeaderCorner.CornerRadius = UDim.new(0, 8)
     HeaderCorner.Parent = Header
 
+    -- Centered Title (Matching Image)
     local TitleLabel = Instance.new("TextLabel")
-    TitleLabel.Size = UDim2.new(1, -36, 1, 0)
-    TitleLabel.Position = UDim2.new(0, 10, 0, 0)
+    TitleLabel.Size = UDim2.new(1, -40, 1, 0)
+    TitleLabel.Position = UDim2.new(0, 20, 0, 0)
     TitleLabel.BackgroundTransparency = 1
-    TitleLabel.Font = Enum.Font.SourceSansBold
+    TitleLabel.Font = Theme.FontBold
     TitleLabel.Text = titleText
-    TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    TitleLabel.TextSize = 15
-    TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+    TitleLabel.TextColor3 = Theme.Text
+    TitleLabel.TextSize = 16
+    TitleLabel.TextXAlignment = Enum.TextXAlignment.Center
     TitleLabel.Parent = Header
 
     local CollapseBtn = Instance.new("TextButton")
-    CollapseBtn.Size = UDim2.new(0, 22, 0, 22)
+    CollapseBtn.Size = UDim2.new(0, 24, 0, 24)
     CollapseBtn.AnchorPoint = Vector2.new(1, 0.5)
-    CollapseBtn.Position = UDim2.new(1, -6, 0.5, 0)
-    CollapseBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-    CollapseBtn.BorderSizePixel = 1
-    CollapseBtn.BorderColor3 = Color3.fromRGB(55, 55, 55)
-    CollapseBtn.Font = Enum.Font.SourceSansBold
+    CollapseBtn.Position = UDim2.new(1, -10, 0.5, 0)
+    CollapseBtn.BackgroundTransparency = 1
+    CollapseBtn.Font = Theme.FontBold
     CollapseBtn.Text = "-"
-    CollapseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    CollapseBtn.TextSize = 14
+    CollapseBtn.TextColor3 = Theme.Text
+    CollapseBtn.TextSize = 18
     CollapseBtn.Parent = Header
-
-    local CollapseCorner = Instance.new("UICorner")
-    CollapseCorner.CornerRadius = UDim.new(0, 4)
-    CollapseCorner.Parent = CollapseBtn
 
     local Container = Instance.new("ScrollingFrame")
     Container.Name = "Container"
-    Container.Size = UDim2.new(1, -10, 1, -36)
-    Container.Position = UDim2.new(0, 5, 0, 32)
+    Container.Size = UDim2.new(1, -12, 1, -42)
+    Container.Position = UDim2.new(0, 6, 0, 38)
     Container.BackgroundTransparency = 1
     Container.BorderSizePixel = 0
     Container.CanvasSize = UDim2.new(0, 0, 0, 0)
     Container.AutomaticCanvasSize = Enum.AutomaticSize.Y
-    Container.ScrollBarThickness = 3
-    Container.ScrollBarImageColor3 = Color3.fromRGB(70, 70, 70)
+    Container.ScrollBarThickness = 2
+    Container.ScrollBarImageColor3 = Color3.fromRGB(60, 60, 65)
     Container.Parent = Window
 
     local Layout = Instance.new("UIListLayout")
     Layout.SortOrder = Enum.SortOrder.LayoutOrder
-    Layout.Padding = UDim.new(0, 4)
+    Layout.Padding = UDim.new(0, 5)
     Layout.Parent = Container
 
     local collapsed = false
-    local fullHeight = UDim2.new(0, 220, 0, 380)
-    local collapsedHeight = UDim2.new(0, 220, 0, 30)
+    local fullHeight = UDim2.new(0, 220, 0, 400)
+    local collapsedHeight = UDim2.new(0, 220, 0, 36)
 
     CollapseBtn.MouseButton1Click:Connect(function()
         collapsed = not collapsed
         Container.Visible = not collapsed
         CollapseBtn.Text = collapsed and "+" or "-"
-        if collapsed then
-            Window.Size = collapsedHeight
-        else
-            Window.Size = fullHeight
-        end
+        Window.Size = collapsed and collapsedHeight or fullHeight
     end)
 
+    -- Window Dragging
     local dragging, dragInput, dragStart, startPos
     Header.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -305,33 +298,34 @@ function Library:AddWindow(titleText, defaultPosition, hubName, toggleKey)
         Library:Notify(title, text, duration)
     end
 
+    -- Button Design (Matching Image)
     function windowAPI:AddButton(text, callback)
         callback = callback or function() end
         local btn = Instance.new("TextButton")
-        btn.Size = UDim2.new(1, 0, 0, 30)
-        btn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-        btn.BorderSizePixel = 1
-        btn.BorderColor3 = Color3.fromRGB(45, 45, 45)
+        btn.Size = UDim2.new(1, 0, 0, 28)
+        btn.BackgroundColor3 = Theme.ElementBackground
+        btn.BorderSizePixel = 0
         btn.AutoButtonColor = false
-        btn.Font = Enum.Font.SourceSans
+        btn.Font = Theme.FontBold
         btn.Text = text
-        btn.TextColor3 = Color3.fromRGB(220, 220, 220)
+        btn.TextColor3 = Theme.Text
         btn.TextSize = 13
         btn.Parent = Container
 
         local btnCorner = Instance.new("UICorner")
-        btnCorner.CornerRadius = UDim.new(0, 4)
+        btnCorner.CornerRadius = UDim.new(0, 5)
         btnCorner.Parent = btn
 
         btn.MouseButton1Click:Connect(function()
             task.spawn(callback)
-            TweenService:Create(btn, TweenInfo.new(0.08), {BackgroundColor3 = Color3.fromRGB(45, 45, 45)}):Play()
+            TweenService:Create(btn, TweenInfo.new(0.08), {BackgroundColor3 = Color3.fromRGB(45, 45, 50)}):Play()
             task.wait(0.12)
-            TweenService:Create(btn, TweenInfo.new(0.12), {BackgroundColor3 = Color3.fromRGB(25, 25, 25)}):Play()
+            TweenService:Create(btn, TweenInfo.new(0.12), {BackgroundColor3 = Theme.ElementBackground}):Play()
         end)
         return btn
     end
 
+    -- Toggle Design (Red Filled Box on Right)
     function windowAPI:AddToggle(text, default, callback)
         callback = callback or function() end
         local savedVal = savedConfigData[text]
@@ -340,26 +334,25 @@ function Library:AddWindow(titleText, defaultPosition, hubName, toggleKey)
         togglesRegistry[text] = toggled
 
         local btn = Instance.new("TextButton")
-        btn.Size = UDim2.new(1, 0, 0, 30)
-        btn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-        btn.BorderSizePixel = 1
-        btn.BorderColor3 = Color3.fromRGB(45, 45, 45)
+        btn.Size = UDim2.new(1, 0, 0, 32)
+        btn.BackgroundColor3 = Theme.ElementBackground
+        btn.BorderSizePixel = 0
         btn.AutoButtonColor = false
-        btn.Font = Enum.Font.SourceSans
+        btn.Font = Theme.FontBold
         btn.Text = "  " .. text
-        btn.TextColor3 = Color3.fromRGB(220, 220, 220)
+        btn.TextColor3 = Theme.Text
         btn.TextSize = 13
         btn.TextXAlignment = Enum.TextXAlignment.Left
         btn.Parent = Container
 
         local btnCorner = Instance.new("UICorner")
-        btnCorner.CornerRadius = UDim.new(0, 4)
+        btnCorner.CornerRadius = UDim.new(0, 5)
         btnCorner.Parent = btn
 
         local checkbox = Instance.new("Frame")
         checkbox.Size = UDim2.new(0, 16, 0, 16)
         checkbox.Position = UDim2.new(1, -22, 0.5, -8)
-        checkbox.BorderSizePixel = 1
+        checkbox.BorderSizePixel = 0
         checkbox.Parent = btn
 
         local boxCorner = Instance.new("UICorner")
@@ -367,11 +360,9 @@ function Library:AddWindow(titleText, defaultPosition, hubName, toggleKey)
         boxCorner.Parent = checkbox
 
         local function updateVisuals(tweenTime)
-            local targetColor = toggled and currentAccent or Color3.fromRGB(35, 35, 35)
-            local targetBorder = toggled and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(60, 60, 60)
+            local targetColor = toggled and Theme.Accent or Theme.ToggleOff
             TweenService:Create(checkbox, TweenInfo.new(tweenTime or 0.15), {
-                BackgroundColor3 = targetColor,
-                BorderColor3 = targetBorder
+                BackgroundColor3 = targetColor
             }):Play()
         end
 
@@ -399,13 +390,152 @@ function Library:AddWindow(titleText, defaultPosition, hubName, toggleKey)
         return btn
     end
 
+    -- New Component: Red Fill Slider (Matching "Autofarm Speed" / "GUI Transparency")
+    function windowAPI:AddSlider(text, min, max, default, callback)
+        callback = callback or function() end
+        min = min or 0
+        max = max or 100
+        default = math.clamp(default or min, min, max)
+
+        local sliderFrame = Instance.new("Frame")
+        sliderFrame.Size = UDim2.new(1, 0, 0, 42)
+        sliderFrame.BackgroundColor3 = Theme.ElementBackground
+        sliderFrame.BorderSizePixel = 0
+        sliderFrame.Parent = Container
+
+        local sliderCorner = Instance.new("UICorner")
+        sliderCorner.CornerRadius = UDim.new(0, 5)
+        sliderCorner.Parent = sliderFrame
+
+        local label = Instance.new("TextLabel")
+        label.Size = UDim2.new(0.7, 0, 0, 20)
+        label.Position = UDim2.new(0, 8, 0, 2)
+        label.BackgroundTransparency = 1
+        label.Font = Theme.FontBold
+        label.Text = text
+        label.TextColor3 = Theme.Text
+        label.TextSize = 13
+        label.TextXAlignment = Enum.TextXAlignment.Left
+        label.Parent = sliderFrame
+
+        local valueLabel = Instance.new("TextLabel")
+        valueLabel.Size = UDim2.new(0.3, -8, 0, 20)
+        valueLabel.Position = UDim2.new(0.7, 0, 0, 2)
+        valueLabel.BackgroundTransparency = 1
+        valueLabel.Font = Theme.FontBold
+        valueLabel.Text = tostring(default)
+        valueLabel.TextColor3 = Theme.Text
+        valueLabel.TextSize = 13
+        valueLabel.TextXAlignment = Enum.TextXAlignment.Right
+        valueLabel.Parent = sliderFrame
+
+        local barBg = Instance.new("Frame")
+        barBg.Size = UDim2.new(1, -16, 0, 10)
+        barBg.Position = UDim2.new(0, 8, 0, 24)
+        barBg.BackgroundColor3 = Theme.ToggleOff
+        barBg.BorderSizePixel = 0
+        barBg.Parent = sliderFrame
+
+        local barCorner = Instance.new("UICorner")
+        barCorner.CornerRadius = UDim.new(0, 3)
+        barCorner.Parent = barBg
+
+        local fillBar = Instance.new("Frame")
+        fillBar.Size = UDim2.new((default - min) / (max - min), 0, 1, 0)
+        fillBar.BackgroundColor3 = Theme.Accent
+        fillBar.BorderSizePixel = 0
+        fillBar.Parent = barBg
+
+        local fillCorner = Instance.new("UICorner")
+        fillCorner.CornerRadius = UDim.new(0, 3)
+        fillCorner.Parent = fillBar
+
+        local sliderActive = false
+
+        local function updateSlider(input)
+            local pct = math.clamp((input.Position.X - barBg.AbsolutePosition.X) / barBg.AbsoluteSize.X, 0, 1)
+            local val = math.floor((min + (max - min) * pct) * 10) / 10
+            fillBar.Size = UDim2.new(pct, 0, 1, 0)
+            valueLabel.Text = tostring(val)
+            pcall(callback, val)
+        end
+
+        barBg.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                sliderActive = true
+                updateSlider(input)
+            end
+        end)
+
+        UserInputService.InputChanged:Connect(function(input)
+            if sliderActive and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+                updateSlider(input)
+            end
+        end)
+
+        UserInputService.InputEnded:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                sliderActive = false
+            end
+        end)
+
+        return sliderFrame
+    end
+
+    -- New Component: Text Input/Value Box (Matching "Unbox Crate: KnifeBox1")
+    function windowAPI:AddTextBox(text, defaultText, callback)
+        callback = callback or function() end
+
+        local boxFrame = Instance.new("Frame")
+        boxFrame.Size = UDim2.new(1, 0, 0, 32)
+        boxFrame.BackgroundColor3 = Theme.ElementBackground
+        boxFrame.BorderSizePixel = 0
+        boxFrame.Parent = Container
+
+        local corner = Instance.new("UICorner")
+        corner.CornerRadius = UDim.new(0, 5)
+        corner.Parent = boxFrame
+
+        local label = Instance.new("TextLabel")
+        label.Size = UDim2.new(0.55, 0, 1, 0)
+        label.Position = UDim2.new(0, 8, 0, 0)
+        label.BackgroundTransparency = 1
+        label.Font = Theme.FontBold
+        label.Text = text
+        label.TextColor3 = Theme.Text
+        label.TextSize = 13
+        label.TextXAlignment = Enum.TextXAlignment.Left
+        label.Parent = boxFrame
+
+        local textBox = Instance.new("TextBox")
+        textBox.Size = UDim2.new(0.4, -6, 0, 22)
+        textBox.Position = UDim2.new(0.6, 0, 0.5, -11)
+        textBox.BackgroundColor3 = Theme.ToggleOff
+        textBox.BorderSizePixel = 0
+        textBox.Font = Theme.FontBold
+        textBox.Text = defaultText or ""
+        textBox.TextColor3 = Theme.Text
+        textBox.TextSize = 12
+        textBox.Parent = boxFrame
+
+        local boxCorner = Instance.new("UICorner")
+        boxCorner.CornerRadius = UDim.new(0, 4)
+        boxCorner.Parent = textBox
+
+        textBox.FocusLost:Connect(function(enterPressed)
+            pcall(callback, textBox.Text, enterPressed)
+        end)
+
+        return boxFrame
+    end
+
     function windowAPI:AddLabel(text)
         local lbl = Instance.new("TextLabel")
-        lbl.Size = UDim2.new(1, 0, 0, 24)
+        lbl.Size = UDim2.new(1, 0, 0, 22)
         lbl.BackgroundTransparency = 1
-        lbl.Font = Enum.Font.SourceSansBold
+        lbl.Font = Theme.FontBold
         lbl.Text = text
-        lbl.TextColor3 = Color3.fromRGB(160, 160, 160)
+        lbl.TextColor3 = Theme.TextDim
         lbl.TextSize = 13
         lbl.TextXAlignment = Enum.TextXAlignment.Center
         lbl.Parent = Container
@@ -418,7 +548,6 @@ end
 function Library:CreateSettingsWindow()
     if settingsWindowInstance and settingsWindowInstance.Parent then return settingsWindowInstance end
 
-    -- Position automatically on the right side of the screen
     local SettingsWin = self:AddWindow("Settings", UDim2.new(1, -230, 0, 50), "NexusUILibrary", currentKeybind)
 
     SettingsWin:AddLabel("UI Configuration")
@@ -428,10 +557,10 @@ function Library:CreateSettingsWindow()
         if rgbEnabled then
             rgbConnection = RunService.RenderStepped:Connect(function()
                 local hue = tick() % 5 / 5
-                currentAccent = Color3.fromHSV(hue, 1, 1)
+                Theme.Accent = Color3.fromHSV(hue, 0.9, 1)
                 for _, item in ipairs(activeTogglesList) do
                     if item.frame and item.frame.Parent and item.getToggled() then
-                        item.frame.BackgroundColor3 = currentAccent
+                        item.frame.BackgroundColor3 = Theme.Accent
                     end
                 end
             end)
@@ -440,7 +569,7 @@ function Library:CreateSettingsWindow()
                 rgbConnection:Disconnect()
                 rgbConnection = nil
             end
-            currentAccent = Color3.fromRGB(0, 200, 80)
+            Theme.Accent = Color3.fromRGB(220, 35, 35)
             for _, item in ipairs(activeTogglesList) do
                 if item.frame and item.frame.Parent then
                     item.update(0.15)
