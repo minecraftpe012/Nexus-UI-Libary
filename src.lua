@@ -43,7 +43,7 @@ local function trackConnection(connection)
 end
 
 --------------------------------------------------------------------------------
--- CONFIG MANAGEMENT
+-- CONFIG MANAGEMENT & POSITION SANITIZER
 --------------------------------------------------------------------------------
 
 local function loadConfig()
@@ -68,6 +68,19 @@ local savedConfigData = loadConfig()
 
 if savedConfigData.Keybind and Enum.KeyCode[savedConfigData.Keybind] then
     currentKeybind = Enum.KeyCode[savedConfigData.Keybind]
+end
+
+local function getValidWindowPos(posData)
+    if type(posData) == "table" then
+        local xs = tonumber(posData.XScale) or 0.5
+        local xo = tonumber(posData.XOffset) or -240
+        local ys = tonumber(posData.YScale) or 0.5
+        local yo = tonumber(posData.YOffset) or -160
+        if xs >= 0 and xs <= 1 and ys >= 0 and ys <= 1 then
+            return UDim2.new(xs, xo, ys, yo)
+        end
+    end
+    return UDim2.new(0.5, -240, 0.5, -160)
 end
 
 function Library:SaveConfig()
@@ -143,6 +156,7 @@ local function initGui(hubName, toggleKey)
     ScreenGui = Instance.new("ScreenGui")
     ScreenGui.Name = guiName
     ScreenGui.ResetOnSpawn = false
+    ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
     local success = pcall(function()
         if syn and syn.protect_gui then
@@ -162,6 +176,7 @@ local function initGui(hubName, toggleKey)
     NotifHolder.Size = UDim2.new(0, 240, 1, -40)
     NotifHolder.Position = UDim2.new(1, -260, 0, 20)
     NotifHolder.BackgroundTransparency = 1
+    NotifHolder.ZIndex = 100
     NotifHolder.Parent = ScreenGui
 
     local layout = Instance.new("UIListLayout")
@@ -201,6 +216,7 @@ function Library:Notify(title, text, duration)
     notif.BorderColor3 = Theme.Border
     notif.BorderSizePixel = 1
     notif.BackgroundTransparency = 1
+    notif.ZIndex = 101
     notif.Parent = NotifHolder
 
     local corner = Instance.new("UICorner")
@@ -216,6 +232,7 @@ function Library:Notify(title, text, duration)
     titleLabel.TextColor3 = Theme.Text
     titleLabel.TextSize = 14
     titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+    titleLabel.ZIndex = 102
     titleLabel.Parent = notif
 
     local textLabel = Instance.new("TextLabel")
@@ -228,6 +245,7 @@ function Library:Notify(title, text, duration)
     textLabel.TextSize = 12
     textLabel.TextXAlignment = Enum.TextXAlignment.Left
     textLabel.TextWrapped = true
+    textLabel.ZIndex = 102
     textLabel.Parent = notif
 
     TweenService:Create(notif, TweenInfo.new(0.2), {BackgroundTransparency = 0}):Play()
@@ -255,17 +273,10 @@ function Library:CreateWindow(titleText, hubName, toggleKey)
     local Window = Instance.new("Frame")
     Window.Name = titleText .. "Window"
     Window.Size = UDim2.new(0, 480, 0, 320)
-    
-    if savedConfigData.WindowPos then
-        local wp = savedConfigData.WindowPos
-        Window.Position = UDim2.new(wp.XScale or 0.5, wp.XOffset or -240, wp.YScale or 0.5, wp.YOffset or -160)
-        windowPosition = wp
-    else
-        Window.Position = UDim2.new(0.5, -240, 0.5, -160)
-    end
-
+    Window.Position = getValidWindowPos(savedConfigData.WindowPos)
     Window.BackgroundColor3 = Theme.WindowBackground
     Window.BorderSizePixel = 0
+    Window.ZIndex = 1
     Window.Parent = ScreenGui
 
     local WindowCorner = Instance.new("UICorner")
@@ -278,6 +289,7 @@ function Library:CreateWindow(titleText, hubName, toggleKey)
     Header.Size = UDim2.new(1, 0, 0, 36)
     Header.BackgroundColor3 = Theme.HeaderBackground
     Header.BorderSizePixel = 0
+    Header.ZIndex = 2
     Header.Parent = Window
 
     local HeaderCorner = Instance.new("UICorner")
@@ -293,6 +305,7 @@ function Library:CreateWindow(titleText, hubName, toggleKey)
     TitleLabel.TextColor3 = Theme.Text
     TitleLabel.TextSize = 15
     TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+    TitleLabel.ZIndex = 3
     TitleLabel.Parent = Header
 
     local CloseBtn = Instance.new("TextButton")
@@ -303,13 +316,14 @@ function Library:CreateWindow(titleText, hubName, toggleKey)
     CloseBtn.Text = "X"
     CloseBtn.TextColor3 = Theme.Accent
     CloseBtn.TextSize = 14
+    CloseBtn.ZIndex = 3
     CloseBtn.Parent = Header
 
     CloseBtn.MouseButton1Click:Connect(function()
         Library:Destroy()
     end)
 
-    -- Tab Bar (Scrollable Horizontal Frame)
+    -- Tab Bar (Scrollable Horizontal Container)
     local TabBar = Instance.new("ScrollingFrame")
     TabBar.Name = "TabBar"
     TabBar.Size = UDim2.new(1, -16, 0, 28)
@@ -317,7 +331,9 @@ function Library:CreateWindow(titleText, hubName, toggleKey)
     TabBar.BackgroundTransparency = 1
     TabBar.BorderSizePixel = 0
     TabBar.ScrollBarThickness = 0
+    TabBar.AutomaticCanvasSize = Enum.AutomaticSize.X
     TabBar.CanvasSize = UDim2.new(0, 0, 0, 0)
+    TabBar.ZIndex = 2
     TabBar.Parent = Window
 
     local TabLayout = Instance.new("UIListLayout")
@@ -326,16 +342,14 @@ function Library:CreateWindow(titleText, hubName, toggleKey)
     TabLayout.Padding = UDim.new(0, 6)
     TabLayout.Parent = TabBar
 
-    TabLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-        TabBar.CanvasSize = UDim2.new(0, TabLayout.AbsoluteContentSize.X + 6, 0, 0)
-    end)
-
     -- Content Container
     local ContentHolder = Instance.new("Frame")
     ContentHolder.Name = "ContentHolder"
     ContentHolder.Size = UDim2.new(1, -16, 1, -80)
     ContentHolder.Position = UDim2.new(0, 8, 0, 74)
     ContentHolder.BackgroundTransparency = 1
+    ContentHolder.ClipsDescendants = true
+    ContentHolder.ZIndex = 2
     ContentHolder.Parent = Window
 
     -- Dragging Logic
@@ -384,13 +398,14 @@ function Library:CreateWindow(titleText, hubName, toggleKey)
 
     function windowAPI:CreateTab(tabName)
         local tabBtn = Instance.new("TextButton")
-        tabBtn.Size = UDim2.new(0, 100, 1, 0)
+        tabBtn.Size = UDim2.new(0, 95, 1, 0)
         tabBtn.BackgroundColor3 = Theme.TabBackground
         tabBtn.BorderSizePixel = 0
         tabBtn.Font = Theme.FontBold
         tabBtn.Text = tabName
         tabBtn.TextColor3 = Theme.TextDim
         tabBtn.TextSize = 13
+        tabBtn.ZIndex = 3
         tabBtn.Parent = TabBar
 
         local tabCorner = Instance.new("UICorner")
@@ -405,7 +420,9 @@ function Library:CreateWindow(titleText, hubName, toggleKey)
         tabPage.ScrollBarThickness = 3
         tabPage.ScrollBarImageColor3 = Theme.Border
         tabPage.Visible = false
+        tabPage.AutomaticCanvasSize = Enum.AutomaticSize.Y
         tabPage.CanvasSize = UDim2.new(0, 0, 0, 0)
+        tabPage.ZIndex = 3
         tabPage.Parent = ContentHolder
 
         local pageLayout = Instance.new("UIListLayout")
@@ -413,12 +430,15 @@ function Library:CreateWindow(titleText, hubName, toggleKey)
         pageLayout.Padding = UDim.new(0, 6)
         pageLayout.Parent = tabPage
 
-        -- Dynamic Canvas Size recalculation on element insertion
-        pageLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-            tabPage.CanvasSize = UDim2.new(0, 0, 0, pageLayout.AbsoluteContentSize.Y + 10)
-        end)
-
         local tabAPI = {}
+
+        local function refreshCanvas()
+            task.defer(function()
+                if pageLayout and tabPage then
+                    tabPage.CanvasSize = UDim2.new(0, 0, 0, pageLayout.AbsoluteContentSize.Y + 10)
+                end
+            end)
+        end
 
         local function activateTab()
             for _, t in pairs(windowAPI.Tabs) do
@@ -430,6 +450,7 @@ function Library:CreateWindow(titleText, hubName, toggleKey)
             tabBtn.BackgroundColor3 = Theme.TabSelected
             tabBtn.TextColor3 = Theme.Text
             windowAPI.ActiveTab = tabAPI
+            refreshCanvas()
         end
 
         tabBtn.MouseButton1Click:Connect(activateTab)
@@ -455,6 +476,7 @@ function Library:CreateWindow(titleText, hubName, toggleKey)
             btn.Text = text
             btn.TextColor3 = Theme.Text
             btn.TextSize = 13
+            btn.ZIndex = 4
             btn.Parent = tabPage
 
             local btnCorner = Instance.new("UICorner")
@@ -468,6 +490,7 @@ function Library:CreateWindow(titleText, hubName, toggleKey)
                 TweenService:Create(btn, TweenInfo.new(0.12), {BackgroundColor3 = Theme.ElementBackground}):Play()
             end)
 
+            refreshCanvas()
             return btn
         end
 
@@ -489,6 +512,7 @@ function Library:CreateWindow(titleText, hubName, toggleKey)
             btn.TextColor3 = Theme.Text
             btn.TextSize = 13
             btn.TextXAlignment = Enum.TextXAlignment.Left
+            btn.ZIndex = 4
             btn.Parent = tabPage
 
             local btnCorner = Instance.new("UICorner")
@@ -499,6 +523,7 @@ function Library:CreateWindow(titleText, hubName, toggleKey)
             checkbox.Size = UDim2.new(0, 16, 0, 16)
             checkbox.Position = UDim2.new(1, -22, 0.5, -8)
             checkbox.BorderSizePixel = 0
+            checkbox.ZIndex = 5
             checkbox.Parent = btn
 
             local boxCorner = Instance.new("UICorner")
@@ -533,6 +558,7 @@ function Library:CreateWindow(titleText, hubName, toggleKey)
                 Library:SaveConfig()
             end)
 
+            refreshCanvas()
             return btn
         end
 
@@ -550,6 +576,7 @@ function Library:CreateWindow(titleText, hubName, toggleKey)
             sliderFrame.Size = UDim2.new(1, -6, 0, 42)
             sliderFrame.BackgroundColor3 = Theme.ElementBackground
             sliderFrame.BorderSizePixel = 0
+            sliderFrame.ZIndex = 4
             sliderFrame.Parent = tabPage
 
             local sliderCorner = Instance.new("UICorner")
@@ -565,6 +592,7 @@ function Library:CreateWindow(titleText, hubName, toggleKey)
             label.TextColor3 = Theme.Text
             label.TextSize = 13
             label.TextXAlignment = Enum.TextXAlignment.Left
+            label.ZIndex = 5
             label.Parent = sliderFrame
 
             local valueLabel = Instance.new("TextLabel")
@@ -576,6 +604,7 @@ function Library:CreateWindow(titleText, hubName, toggleKey)
             valueLabel.TextColor3 = Theme.Text
             valueLabel.TextSize = 13
             valueLabel.TextXAlignment = Enum.TextXAlignment.Right
+            valueLabel.ZIndex = 5
             valueLabel.Parent = sliderFrame
 
             local barBg = Instance.new("Frame")
@@ -583,6 +612,7 @@ function Library:CreateWindow(titleText, hubName, toggleKey)
             barBg.Position = UDim2.new(0, 8, 0, 24)
             barBg.BackgroundColor3 = Theme.ToggleOff
             barBg.BorderSizePixel = 0
+            barBg.ZIndex = 5
             barBg.Parent = sliderFrame
 
             local barCorner = Instance.new("UICorner")
@@ -593,6 +623,7 @@ function Library:CreateWindow(titleText, hubName, toggleKey)
             fillBar.Size = UDim2.new((default - min) / (max - min), 0, 1, 0)
             fillBar.BackgroundColor3 = Theme.Accent
             fillBar.BorderSizePixel = 0
+            fillBar.ZIndex = 6
             fillBar.Parent = barBg
 
             local fillCorner = Instance.new("UICorner")
@@ -632,6 +663,7 @@ function Library:CreateWindow(titleText, hubName, toggleKey)
                 end
             end))
 
+            refreshCanvas()
             return sliderFrame
         end
 
@@ -647,6 +679,7 @@ function Library:CreateWindow(titleText, hubName, toggleKey)
             boxFrame.Size = UDim2.new(1, -6, 0, 32)
             boxFrame.BackgroundColor3 = Theme.ElementBackground
             boxFrame.BorderSizePixel = 0
+            boxFrame.ZIndex = 4
             boxFrame.Parent = tabPage
 
             local corner = Instance.new("UICorner")
@@ -662,6 +695,7 @@ function Library:CreateWindow(titleText, hubName, toggleKey)
             label.TextColor3 = Theme.Text
             label.TextSize = 13
             label.TextXAlignment = Enum.TextXAlignment.Left
+            label.ZIndex = 5
             label.Parent = boxFrame
 
             local textBox = Instance.new("TextBox")
@@ -673,6 +707,7 @@ function Library:CreateWindow(titleText, hubName, toggleKey)
             textBox.Text = initialText
             textBox.TextColor3 = Theme.Text
             textBox.TextSize = 12
+            textBox.ZIndex = 5
             textBox.Parent = boxFrame
 
             local boxCorner = Instance.new("UICorner")
@@ -685,6 +720,7 @@ function Library:CreateWindow(titleText, hubName, toggleKey)
                 Library:SaveConfig()
             end)
 
+            refreshCanvas()
             return boxFrame
         end
 
@@ -697,8 +733,10 @@ function Library:CreateWindow(titleText, hubName, toggleKey)
             lbl.TextColor3 = Theme.TextDim
             lbl.TextSize = 13
             lbl.TextXAlignment = Enum.TextXAlignment.Center
+            lbl.ZIndex = 4
             lbl.Parent = tabPage
 
+            refreshCanvas()
             return lbl
         end
 
