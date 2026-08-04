@@ -27,13 +27,16 @@ local Theme = {
 }
 
 local togglesRegistry = {}
+local slidersRegistry = {}
+local textboxesRegistry = {}
+local windowPosition = nil
+
 local activeTogglesList = {}
 local activeConnections = {}
 local rgbEnabled = false
 local rgbConnection = nil
 local CONFIG_FILE = "NexusUI_Config.json"
 
--- Track global connections for clean destruction
 local function trackConnection(connection)
     table.insert(activeConnections, connection)
     return connection
@@ -42,21 +45,6 @@ end
 --------------------------------------------------------------------------------
 -- CONFIG MANAGEMENT
 --------------------------------------------------------------------------------
-
-function Library:SaveConfig()
-    local saveData = {}
-    for name, state in pairs(togglesRegistry) do
-        saveData[name] = state
-    end
-    local success, encoded = pcall(function()
-        return HttpService:JSONEncode(saveData)
-    end)
-    if success and writefile then
-        pcall(function()
-            writefile(CONFIG_FILE, encoded)
-        end)
-    end
-end
 
 local function loadConfig()
     if isfile and isfile(CONFIG_FILE) then
@@ -67,10 +55,32 @@ local function loadConfig()
             return decoded
         end
     end
-    return {}
+    return { Toggles = {}, Sliders = {}, TextBoxes = {} }
 end
 
 local savedConfigData = loadConfig()
+
+if savedConfigData.Keybind and Enum.KeyCode[savedConfigData.Keybind] then
+    currentKeybind = Enum.KeyCode[savedConfigData.Keybind]
+end
+
+function Library:SaveConfig()
+    local saveData = {
+        Toggles = togglesRegistry,
+        Sliders = slidersRegistry,
+        TextBoxes = textboxesRegistry,
+        Keybind = currentKeybind and currentKeybind.Name or "RightShift",
+        WindowPos = windowPosition
+    }
+    local success, encoded = pcall(function()
+        return HttpService:JSONEncode(saveData)
+    end)
+    if success and writefile then
+        pcall(function()
+            writefile(CONFIG_FILE, encoded)
+        end)
+    end
+end
 
 --------------------------------------------------------------------------------
 -- CLEANUP & DESTROY
@@ -90,7 +100,6 @@ local function cleanupOldInstances()
 end
 
 function Library:Destroy()
-    -- Disconnect all tracked events
     for _, conn in ipairs(activeConnections) do
         if conn and conn.Connected then
             conn:Disconnect()
@@ -103,14 +112,14 @@ function Library:Destroy()
         rgbConnection = nil
     end
 
-    -- Destroy UI instance
     if ScreenGui then
         ScreenGui:Destroy()
         ScreenGui = nil
     end
 
-    -- Reset state variables
     togglesRegistry = {}
+    slidersRegistry = {}
+    textboxesRegistry = {}
     activeTogglesList = {}
     cleanupOldInstances()
 end
@@ -155,7 +164,6 @@ local function initGui(hubName, toggleKey)
     layout.Padding = UDim.new(0, 6)
     layout.Parent = NotifHolder
 
-    -- Global Toggle Keybind Connection
     trackConnection(UserInputService.InputBegan:Connect(function(input, gameProcessed)
         if gameProcessed or isRebinding then return end
         if input.UserInputType == Enum.UserInputType.Keyboard then
@@ -241,7 +249,15 @@ function Library:CreateWindow(titleText, hubName, toggleKey)
     local Window = Instance.new("Frame")
     Window.Name = titleText .. "Window"
     Window.Size = UDim2.new(0, 480, 0, 320)
-    Window.Position = UDim2.new(0.5, -240, 0.5, -160)
+    
+    if savedConfigData.WindowPos then
+        local wp = savedConfigData.WindowPos
+        Window.Position = UDim2.new(wp.XScale or 0.5, wp.XOffset or -240, wp.YScale or 0.5, wp.YOffset or -160)
+        windowPosition = wp
+    else
+        Window.Position = UDim2.new(0.5, -240, 0.5, -160)
+    end
+
     Window.BackgroundColor3 = Theme.WindowBackground
     Window.BorderSizePixel = 0
     Window.Parent = ScreenGui
@@ -287,7 +303,7 @@ function Library:CreateWindow(titleText, hubName, toggleKey)
         Library:Destroy()
     end)
 
-    -- Tab Bar (Top Navigation)
+    -- Tab Bar
     local TabBar = Instance.new("Frame")
     TabBar.Name = "TabBar"
     TabBar.Size = UDim2.new(1, -16, 0, 28)
@@ -319,6 +335,13 @@ function Library:CreateWindow(titleText, hubName, toggleKey)
             input.Changed:Connect(function()
                 if input.UserInputState == Enum.UserInputState.End then
                     dragging = false
+                    windowPosition = {
+                        XScale = Window.Position.X.Scale,
+                        XOffset = Window.Position.X.Offset,
+                        YScale = Window.Position.Y.Scale,
+                        YOffset = Window.Position.Y.Offset
+                    }
+                    Library:SaveConfig()
                 end
             end)
         end
@@ -396,7 +419,6 @@ function Library:CreateWindow(titleText, hubName, toggleKey)
 
         table.insert(windowAPI.Tabs, {Button = tabBtn, Page = tabPage})
 
-        -- Auto select first tab
         if #windowAPI.Tabs == 1 then
             activateTab()
         end
@@ -434,7 +456,8 @@ function Library:CreateWindow(titleText, hubName, toggleKey)
 
         function tabAPI:AddToggle(text, default, callback)
             callback = callback or function() end
-            local savedVal = savedConfigData[text]
+            local savedToggles = savedConfigData.Toggles or {}
+            local savedVal = savedToggles[text]
             local toggled = (savedVal ~= nil) and savedVal or (default or false)
             
             togglesRegistry[text] = toggled
@@ -500,7 +523,11 @@ function Library:CreateWindow(titleText, hubName, toggleKey)
             callback = callback or function() end
             min = min or 0
             max = max or 100
-            default = math.clamp(default or min, min, max)
+            
+            local savedSliders = savedConfigData.Sliders or {}
+            local savedVal = savedSliders[text]
+            default = math.clamp((savedVal ~= nil) and savedVal or (default or min), min, max)
+            slidersRegistry[text] = default
 
             local sliderFrame = Instance.new("Frame")
             sliderFrame.Size = UDim2.new(1, -6, 0, 42)
@@ -562,6 +589,7 @@ function Library:CreateWindow(titleText, hubName, toggleKey)
                 local val = math.floor((min + (max - min) * pct) * 10) / 10
                 fillBar.Size = UDim2.new(pct, 0, 1, 0)
                 valueLabel.Text = tostring(val)
+                slidersRegistry[text] = val
                 pcall(callback, val)
             end
 
@@ -580,7 +608,10 @@ function Library:CreateWindow(titleText, hubName, toggleKey)
 
             trackConnection(UserInputService.InputEnded:Connect(function(input)
                 if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-                    sliderActive = false
+                    if sliderActive then
+                        sliderActive = false
+                        Library:SaveConfig()
+                    end
                 end
             end))
 
@@ -589,6 +620,11 @@ function Library:CreateWindow(titleText, hubName, toggleKey)
 
         function tabAPI:AddTextBox(text, defaultText, callback)
             callback = callback or function() end
+
+            local savedBoxes = savedConfigData.TextBoxes or {}
+            local savedVal = savedBoxes[text]
+            local initialText = (savedVal ~= nil) and savedVal or (defaultText or "")
+            textboxesRegistry[text] = initialText
 
             local boxFrame = Instance.new("Frame")
             boxFrame.Size = UDim2.new(1, -6, 0, 32)
@@ -617,7 +653,7 @@ function Library:CreateWindow(titleText, hubName, toggleKey)
             textBox.BackgroundColor3 = Theme.ToggleOff
             textBox.BorderSizePixel = 0
             textBox.Font = Theme.FontBold
-            textBox.Text = defaultText or ""
+            textBox.Text = initialText
             textBox.TextColor3 = Theme.Text
             textBox.TextSize = 12
             textBox.Parent = boxFrame
@@ -627,7 +663,9 @@ function Library:CreateWindow(titleText, hubName, toggleKey)
             boxCorner.Parent = textBox
 
             textBox.FocusLost:Connect(function(enterPressed)
+                textboxesRegistry[text] = textBox.Text
                 pcall(callback, textBox.Text, enterPressed)
+                Library:SaveConfig()
             end)
 
             return boxFrame
@@ -651,7 +689,7 @@ function Library:CreateWindow(titleText, hubName, toggleKey)
     end
 
     ----------------------------------------------------------------------------
-    -- SETTINGS TAB LAYOUT GENERATOR
+    -- SETTINGS TAB GENERATOR
     ----------------------------------------------------------------------------
 
     function windowAPI:CreateSettingsTab()
@@ -685,6 +723,33 @@ function Library:CreateWindow(titleText, hubName, toggleKey)
             end
         end)
 
+        SettingsTab:AddLabel("Layout & Window Management")
+
+        SettingsTab:AddButton("Save Layout", function()
+            windowPosition = {
+                XScale = Window.Position.X.Scale,
+                XOffset = Window.Position.X.Offset,
+                YScale = Window.Position.Y.Scale,
+                YOffset = Window.Position.Y.Offset
+            }
+            Library:SaveConfig()
+            Library:Notify("Layout", "Window position saved!", 2)
+        end)
+
+        SettingsTab:AddButton("Reset Layout", function()
+            local defaultPos = UDim2.new(0.5, -240, 0.5, -160)
+            TweenService:Create(Window, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Position = defaultPos}):Play()
+            
+            windowPosition = {
+                XScale = 0.5,
+                XOffset = -240,
+                YScale = 0.5,
+                YOffset = -160
+            }
+            Library:SaveConfig()
+            Library:Notify("Layout", "Window position reset to center!", 2)
+        end)
+
         SettingsTab:AddLabel("Keybind & Config Manager")
 
         local bindBtn
@@ -700,6 +765,7 @@ function Library:CreateWindow(titleText, hubName, toggleKey)
                     bindBtn.Text = "Toggle Key: " .. tostring(currentKeybind.Name)
                     Library:Notify("Keybind", "Key set to " .. tostring(currentKeybind.Name), 2)
                     connection:Disconnect()
+                    Library:SaveConfig()
                     task.delay(0.2, function()
                         isRebinding = false
                     end)
