@@ -569,7 +569,7 @@ function Library:AddWindow(titleText, defaultPosition, hubName, toggleKey)
 end
 
 function Library:CreateSettingsWindow()
-    if settingsWindowInstance and settingsWindowInstance.Parent then return settingsWindowInstance end
+    if settingsWindowInstance then return settingsWindowInstance end
 
     local SettingsWin = self:AddWindow("Settings", nil, "NexusUILibrary", currentKeybind)
 
@@ -608,7 +608,9 @@ function Library:CreateSettingsWindow()
 
     SettingsWin:AddLabel("Keybind Manager")
 
-    local bindBtn = SettingsWin:AddButton("Toggle Key: " .. tostring(currentKeybind.Name), function()
+    -- Fix: Declare bindBtn prior to assignment so the click callback closure captures it
+    local bindBtn
+    bindBtn = SettingsWin:AddButton("Toggle Key: " .. tostring(currentKeybind.Name), function()
         if isRebinding then return end
         isRebinding = true
         self:Notify("Keybind", "Press any key...", 2)
