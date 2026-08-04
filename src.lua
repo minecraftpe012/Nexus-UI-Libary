@@ -1,22 +1,23 @@
-local Library = {}
+local Players = game:GetService("Players")
 local CoreGui = game:GetService("CoreGui")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
-local HttpService = game:GetService("HttpService")
 local RunService = game:GetService("RunService")
-local LocalPlayer = game:GetService("Players").LocalPlayer
+local LocalPlayer = Players.LocalPlayer
 
+local Library = {}
 local ScreenGui = nil
 local NotifHolder = nil
 local currentKeybind = Enum.KeyCode.RightShift
 local isRebinding = false
 
+-- Fixed Theme: ToggleOff is dark gray, Accent (ON state) is green
 local Theme = {
     WindowBackground = Color3.fromRGB(18, 18, 18),
     HeaderBackground = Color3.fromRGB(25, 25, 25),
     ElementBackground = Color3.fromRGB(28, 28, 32),
-    Accent = Color3.fromRGB(220, 35, 35),
-    ToggleOff = Color3.fromRGB(220, 35, 35),
+    Accent = Color3.fromRGB(40, 200, 40),       -- Green when ON
+    ToggleOff = Color3.fromRGB(60, 60, 65),     -- Dark Gray when OFF
     Text = Color3.fromRGB(255, 255, 255),
     TextDim = Color3.fromRGB(180, 180, 180),
     Border = Color3.fromRGB(40, 40, 40),
@@ -72,14 +73,14 @@ local function initGui()
     ScreenGui.Name = "PrismHub"
     ScreenGui.ResetOnSpawn = false
 
-    local success = pcall(function()
+    pcall(function()
         if syn and syn.protect_gui then
             syn.protect_gui(ScreenGui)
         end
         ScreenGui.Parent = CoreGui
     end)
 
-    if not success or ScreenGui.Parent ~= CoreGui then
+    if not ScreenGui.Parent then
         pcall(function()
             ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
         end)
@@ -118,21 +119,6 @@ function Library:Notify(title, text, duration)
     title = title or "Notification"
     text = text or ""
     duration = duration or 3
-
-    if not NotifHolder or not NotifHolder.Parent then
-        NotifHolder = Instance.new("Frame")
-        NotifHolder.Name = "NotificationHolder"
-        NotifHolder.Size = UDim2.new(0, 240, 1, -40)
-        NotifHolder.Position = UDim2.new(1, -260, 0, 20)
-        NotifHolder.BackgroundTransparency = 1
-        NotifHolder.Parent = ScreenGui
-
-        local layout = Instance.new("UIListLayout")
-        layout.SortOrder = Enum.SortOrder.LayoutOrder
-        layout.VerticalAlignment = Enum.VerticalAlignment.Bottom
-        layout.Padding = UDim.new(0, 6)
-        layout.Parent = NotifHolder
-    end
 
     local notif = Instance.new("Frame")
     notif.Size = UDim2.new(1, 0, 0, 56)
@@ -320,7 +306,7 @@ function Library:AddWindow(windowTitle)
         btn.BackgroundColor3 = Theme.ElementBackground
         btn.BorderSizePixel = 0
         btn.Font = Theme.FontRegular
-        btn.Text = "  " .. text
+        btn.Text = "   " .. text
         btn.TextColor3 = Theme.Text
         btn.TextSize = 12
         btn.TextXAlignment = Enum.TextXAlignment.Left
@@ -350,76 +336,6 @@ function Library:AddWindow(windowTitle)
         return btn
     end
 
-    function windowAPI:AddSlider(text, min, max, default, callback)
-        callback = callback or function() end
-        min, max = min or 0, max or 100
-        default = math.clamp(default or min, min, max)
-
-        local frame = Instance.new("Frame")
-        frame.Size = UDim2.new(1, 0, 0, 36)
-        frame.BackgroundColor3 = Theme.ElementBackground
-        frame.BorderSizePixel = 0
-        frame.Parent = Container
-
-        local corner = Instance.new("UICorner")
-        corner.CornerRadius = UDim.new(0, 4)
-        corner.Parent = frame
-
-        local label = Instance.new("TextLabel")
-        label.Size = UDim2.new(1, -8, 0, 16)
-        label.Position = UDim2.new(0, 4, 0, 2)
-        label.BackgroundTransparency = 1
-        label.Font = Theme.FontRegular
-        label.Text = text .. " (" .. tostring(default) .. ")"
-        label.TextColor3 = Theme.Text
-        label.TextSize = 11
-        label.TextXAlignment = Enum.TextXAlignment.Left
-        label.Parent = frame
-
-        local barBg = Instance.new("Frame")
-        barBg.Size = UDim2.new(1, -8, 0, 8)
-        barBg.Position = UDim2.new(0, 4, 0, 22)
-        barBg.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
-        barBg.BorderSizePixel = 0
-        barBg.Parent = frame
-
-        local fill = Instance.new("Frame")
-        fill.Size = UDim2.new((default - min) / (max - min), 0, 1, 0)
-        fill.BackgroundColor3 = Theme.Accent
-        fill.BorderSizePixel = 0
-        fill.Parent = barBg
-
-        local active = false
-        local function update(input)
-            local pct = math.clamp((input.Position.X - barBg.AbsolutePosition.X) / barBg.AbsoluteSize.X, 0, 1)
-            local val = math.floor((min + (max - min) * pct) * 10) / 10
-            fill.Size = UDim2.new(pct, 0, 1, 0)
-            label.Text = text .. " (" .. tostring(val) .. ")"
-            pcall(callback, val)
-        end
-
-        barBg.InputBegan:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-                active = true
-                update(input)
-            end
-        end)
-
-        trackConnection(UserInputService.InputChanged:Connect(function(input)
-            if active and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-                update(input)
-            end
-        end))
-
-        trackConnection(UserInputService.InputEnded:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-                active = false
-            end
-        end))
-
-        return frame
-    end
-
     function windowAPI:AddLabel(text)
         local lbl = Instance.new("TextLabel")
         lbl.Size = UDim2.new(1, 0, 0, 18)
@@ -439,4 +355,143 @@ end
 
 Library.CreateWindow = Library.AddWindow
 
-return Library
+-- ESP implementation script below
+Library:Notify("Prism", "Welcome!", 3)
+
+local VisualsWindow = Library:AddWindow("Visuals")
+VisualsWindow:AddLabel("Esp")
+
+local espAll = false
+local espMurderer = false
+local espSheriff = false
+local espConnection = nil
+
+local function CheckRole(plr)
+    local char = plr.Character
+    local backpack = plr.Backpack
+    
+    if (char and (char:FindFirstChild("Gun") or char:FindFirstChild("Revolver"))) or 
+       (backpack and (backpack:FindFirstChild("Gun") or backpack:FindFirstChild("Revolver"))) then
+        return "Sheriff"
+    elseif (char and char:FindFirstChild("Knife")) or 
+           (backpack and backpack:FindFirstChild("Knife")) then
+        return "Murderer"
+    else
+        return "Innocent"
+    end
+end
+
+local function updateESPState()
+    local shouldRun = espAll or espMurderer or espSheriff
+    
+    if shouldRun and not espConnection then
+        espConnection = RunService.RenderStepped:Connect(function()
+            for _, plr in pairs(Players:GetPlayers()) do
+                if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                    local char = plr.Character
+                    local role = CheckRole(plr)
+                    
+                    local showPlayer = false
+                    local roleColor = Color3.fromRGB(0, 255, 0)
+                    
+                    if role == "Murderer" then
+                        roleColor = Color3.fromRGB(255, 0, 0)
+                        if espAll or espMurderer then
+                            showPlayer = true
+                        end
+                    elseif role == "Sheriff" then
+                        roleColor = Color3.fromRGB(0, 170, 255)
+                        if espAll or espSheriff then
+                            showPlayer = true
+                        end
+                    else
+                        roleColor = Color3.fromRGB(0, 255, 0)
+                        if espAll then
+                            showPlayer = true
+                        end
+                    end
+                    
+                    if showPlayer then
+                        local highlight = char:FindFirstChild("PrismESP_Highlight")
+                        if not highlight then
+                            highlight = Instance.new("Highlight")
+                            highlight.Name = "PrismESP_Highlight"
+                            highlight.Adornee = char
+                            highlight.FillTransparency = 1
+                            highlight.Parent = char
+                        end
+                        highlight.OutlineColor = roleColor
+                        
+                        local head = char:FindFirstChild("Head")
+                        if head then
+                            local billboard = head:FindFirstChild("PrismESP_Name")
+                            if not billboard then
+                                billboard = Instance.new("BillboardGui")
+                                billboard.Name = "PrismESP_Name"
+                                billboard.Size = UDim2.new(0, 100, 0, 40)
+                                billboard.StudsOffset = Vector3.new(0, 2.5, 0)
+                                billboard.AlwaysOnTop = true
+                                billboard.Parent = head
+                                
+                                local textLabel = Instance.new("TextLabel")
+                                textLabel.Name = "Text"
+                                textLabel.Size = UDim2.new(1, 0, 1, 0)
+                                textLabel.BackgroundTransparency = 1
+                                textLabel.TextStrokeTransparency = 0
+                                textLabel.TextSize = 14
+                                textLabel.Font = Enum.Font.SourceSansBold
+                                textLabel.Parent = billboard
+                            end
+                            
+                            local textLabel = billboard:FindFirstChild("Text")
+                            if textLabel then
+                                textLabel.Text = plr.Name
+                                textLabel.TextColor3 = roleColor
+                            end
+                        end
+                    else
+                        local highlight = char:FindFirstChild("PrismESP_Highlight")
+                        if highlight then highlight:Destroy() end
+                        
+                        local head = char:FindFirstChild("Head")
+                        if head then
+                            local billboard = head:FindFirstChild("PrismESP_Name")
+                            if billboard then billboard:Destroy() end
+                        end
+                    end
+                end
+            end
+        end)
+    elseif not shouldRun and espConnection then
+        espConnection:Disconnect()
+        espConnection = nil
+        
+        for _, plr in pairs(Players:GetPlayers()) do
+            if plr.Character then
+                local highlight = plr.Character:FindFirstChild("PrismESP_Highlight")
+                if highlight then highlight:Destroy() end
+                
+                local head = plr.Character:FindFirstChild("Head")
+                if head then
+                    local billboard = head:FindFirstChild("PrismESP_Name")
+                    if billboard then billboard:Destroy() end
+                end
+            end
+        end
+    end
+end
+
+VisualsWindow:AddToggle("AllEsp", false, function(state) 
+    espAll = state
+    updateESPState()
+end)
+
+VisualsWindow:AddToggle("Esp Murderer Only", false, function(state) 
+    espMurderer = state
+    updateESPState()
+end)
+
+VisualsWindow:AddToggle("Esp Sheriff Only", false, function(state) 
+    espSheriff = state
+    updateESPState()
+end)
