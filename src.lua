@@ -206,24 +206,17 @@ function Library:AddWindow(titleText, defaultPosition, hubName, toggleKey)
         boxCorner.CornerRadius = UDim.new(0, 3)
         boxCorner.Parent = checkbox
 
-        local checkmark = Instance.new("TextLabel")
-        checkmark.Size = UDim2.new(1, 0, 1, 0)
-        checkmark.BackgroundTransparency = 1
-        checkmark.Font = Enum.Font.SourceSansBold
-        checkmark.TextSize = 13
-        checkmark.Parent = checkbox
-
         local function updateVisuals()
             if toggled then
-                checkbox.BackgroundColor3 = Color3.fromRGB(0, 200, 80)
-                checkbox.BorderColor3 = Color3.fromRGB(0, 255, 100)
-                checkmark.Text = "✓"
-                checkmark.TextColor3 = Color3.fromRGB(255, 255, 255)
+                TweenService:Create(checkbox, TweenInfo.new(0.15), {
+                    BackgroundColor3 = Color3.fromRGB(0, 200, 80),
+                    BorderColor3 = Color3.fromRGB(0, 255, 100)
+                }):Play()
             else
-                checkbox.BackgroundColor3 = Color3.fromRGB(200, 40, 40)
-                checkbox.BorderColor3 = Color3.fromRGB(255, 60, 60)
-                checkmark.Text = "✕"
-                checkmark.TextColor3 = Color3.fromRGB(255, 255, 255)
+                TweenService:Create(checkbox, TweenInfo.new(0.15), {
+                    BackgroundColor3 = Color3.fromRGB(35, 35, 35),
+                    BorderColor3 = Color3.fromRGB(60, 60, 60)
+                }):Play()
             end
         end
 
@@ -252,10 +245,5 @@ function Library:AddWindow(titleText, defaultPosition, hubName, toggleKey)
 
     return windowAPI
 end
-
--- Пример использования:
--- local Window = Library:AddWindow("Farmer", UDim2.new(0, 50, 0, 50), "PepsiSwarm", Enum.KeyCode.RightShift)
--- Window:AddLabel("Main Settings")
--- Window:AddToggle("Auto Farm", false, function(state) print(state) end)
 
 return Library
