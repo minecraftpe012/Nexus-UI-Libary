@@ -2,11 +2,51 @@ local Library = {}
 local CoreGui = game:GetService("CoreGui")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
+local HttpService = game:GetService("HttpService")
+local RunService = game:GetService("RunService")
 local LocalPlayer = game:GetService("Players").LocalPlayer
 
 local ScreenGui = nil
 local NotifHolder = nil
 local isConnected = false
+local currentKeybind = Enum.KeyCode.RightShift
+
+-- Configuration and Theme State
+local togglesRegistry = {}
+local currentAccent = Color3.fromRGB(0, 200, 80)
+local rgbEnabled = false
+local rgbConnection = nil
+
+local CONFIG_FILE = "NexusUI_Config.json"
+
+local function saveConfig()
+    local saveData = {}
+    for name, state in pairs(togglesRegistry) do
+        saveData[name] = state
+    end
+    local success, encoded = pcall(function()
+        return HttpService:JSONEncode(saveData)
+    end)
+    if success and writefile then
+        pcall(function()
+            writefile(CONFIG_FILE, encoded)
+        end)
+    end
+end
+
+local function loadConfig()
+    if isfile and isfile(CONFIG_FILE) then
+        local success, decoded = pcall(function()
+            return HttpService:JSONDecode(readfile(CONFIG_FILE))
+        end)
+        if success and type(decoded) == "table" then
+            return decoded
+        end
+    end
+    return {}
+end
+
+local savedConfigData = loadConfig()
 
 local function cleanupOldInstances()
     local possibleNames = {"NexusUILibrary", "PepsiSwarm", "PepsiSwarmGUI"}
@@ -27,6 +67,7 @@ end
 
 local function initGui(hubName, toggleKey)
     local guiName = hubName or "NexusUILibrary"
+    currentKeybind = toggleKey or currentKeybind
     
     cleanupOldInstances()
 
@@ -62,9 +103,8 @@ local function initGui(hubName, toggleKey)
 
     if not isConnected then
         isConnected = true
-        local boundKey = toggleKey or Enum.KeyCode.RightShift
         UserInputService.InputBegan:Connect(function(input, gameProcessed)
-            if input.KeyCode == boundKey and not gameProcessed then
+            if input.KeyCode == currentKeybind and not gameProcessed then
                 if ScreenGui then
                     ScreenGui.Enabled = not ScreenGui.Enabled
                 end
@@ -75,7 +115,7 @@ end
 
 function Library:Notify(title, text, duration)
     if not ScreenGui or not ScreenGui.Parent or not NotifHolder or not NotifHolder.Parent then
-        initGui("NexusUILibrary", Enum.KeyCode.RightShift)
+        initGui("NexusUILibrary", currentKeybind)
     end
 
     title = title or "Notification"
@@ -279,7 +319,10 @@ function Library:AddWindow(titleText, defaultPosition, hubName, toggleKey)
 
     function windowAPI:AddToggle(text, default, callback)
         callback = callback or function() end
-        local toggled = default or false
+        local savedVal = savedConfigData[text]
+        local toggled = (savedVal ~= nil) and savedVal or (default or false)
+        
+        togglesRegistry[text] = toggled
 
         local btn = Instance.new("TextButton")
         btn.Size = UDim2.new(1, 0, 0, 30)
@@ -308,27 +351,30 @@ function Library:AddWindow(titleText, defaultPosition, hubName, toggleKey)
         boxCorner.CornerRadius = UDim.new(0, 3)
         boxCorner.Parent = checkbox
 
-        local function updateVisuals()
-            if toggled then
-                TweenService:Create(checkbox, TweenInfo.new(0.15), {
-                    BackgroundColor3 = Color3.fromRGB(0, 200, 80),
-                    BorderColor3 = Color3.fromRGB(0, 255, 100)
-                }):Play()
-            else
-                TweenService:Create(checkbox, TweenInfo.new(0.15), {
-                    BackgroundColor3 = Color3.fromRGB(35, 35, 35),
-                    BorderColor3 = Color3.fromRGB(60, 60, 60)
-                }):Play()
-            end
+        local function updateVisuals(tweenTime)
+            local targetColor = toggled and currentAccent or Color3.fromRGB(35, 35, 35)
+            local targetBorder = toggled and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(60, 60, 60)
+            TweenService:Create(checkbox, TweenInfo.new(tweenTime or 0.15), {
+                BackgroundColor3 = targetColor,
+                BorderColor3 = targetBorder
+            }):Play()
         end
 
-        updateVisuals()
+        updateVisuals(0)
+        if toggled then
+            task.spawn(function()
+                pcall(callback, toggled)
+            end)
+        end
 
         btn.MouseButton1Click:Connect(function()
             toggled = not toggled
-            updateVisuals()
+            togglesRegistry[text] = toggled
+            updateVisuals(0.15)
             pcall(callback, toggled)
+            saveConfig()
         end)
+
         return btn
     end
 
@@ -346,6 +392,51 @@ function Library:AddWindow(titleText, defaultPosition, hubName, toggleKey)
     end
 
     return windowAPI
+end
+
+-- Automatically create the Settings Window on the right side of the screen
+function Library:CreateSettingsWindow()
+    local SettingsWin = self:AddWindow("Settings", UDim2.new(0, 280, 0, 50), "NexusUILibrary", currentKeybind)
+
+    SettingsWin:AddLabel("UI Configuration")
+
+    SettingsWin:AddToggle("RGB Theme", false, function(state)
+        rgbEnabled = state
+        if rgbEnabled then
+            rgbConnection = RunService.RenderStepped:Connect(function()
+                local hue = tick() % 5 / 5
+                currentAccent = Color3.fromHSV(hue, 1, 1)
+            end)
+        else
+            if rgbConnection then
+                rgbConnection:Disconnect()
+                rgbConnection = nil
+            end
+            currentAccent = Color3.fromRGB(0, 200, 80)
+        end
+    end)
+
+    SettingsWin:AddButton("Save Config File", function()
+        saveConfig()
+        self:Notify("Settings", "Configuration saved successfully!", 3)
+    end)
+
+    SettingsWin:AddLabel("Keybind Manager")
+
+    local keybindBtn = SettingsWin:AddButton("Bind: " .. tostring(currentKeybind.Name), function()
+        SettingsWin:AddLabel("Press any key...")
+        local connection
+        connection = UserInputService.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.Keyboard then
+                currentKeybind = input.KeyCode
+                -- Update button text or notify
+                self:Notify("Keybind", "Toggle key changed to " .. tostring(currentKeybind.Name), 3)
+                connection:Disconnect()
+            end
+        end)
+    end)
+
+    return SettingsWin
 end
 
 return Library
