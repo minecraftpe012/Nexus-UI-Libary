@@ -33,63 +33,64 @@ function Library.new(hubName, toggleKey)
     function WindowManager:AddWindow(titleText, defaultPosition)
         local Window = Instance.new("Frame")
         Window.Name = titleText .. "Window"
-        Window.Size = UDim2.new(0, 200, 0, 360)
+        Window.Size = UDim2.new(0, 220, 0, 380)
         Window.Position = defaultPosition or UDim2.new(0, 50, 0, 50)
-        Window.BackgroundColor3 = Color3.fromRGB(35, 35, 42)
+        Window.BackgroundColor3 = Color3.fromRGB(45, 45, 52)
         Window.BorderSizePixel = 1
-        Window.BorderColor3 = Color3.fromRGB(55, 55, 65)
+        Window.BorderColor3 = Color3.fromRGB(70, 70, 80)
         Window.Parent = ScreenGui
 
         local Header = Instance.new("Frame")
         Header.Name = "Header"
-        Header.Size = UDim2.new(1, 0, 0, 28)
-        Header.BackgroundColor3 = Color3.fromRGB(48, 48, 58)
+        Header.Size = UDim2.new(1, 0, 0, 30)
+        Header.BackgroundColor3 = Color3.fromRGB(58, 58, 68)
         Header.BorderSizePixel = 0
         Header.Parent = Window
 
         local TitleLabel = Instance.new("TextLabel")
-        TitleLabel.Size = UDim2.new(1, -32, 1, 0)
-        TitleLabel.Position = UDim2.new(0, 8, 0, 0)
+        TitleLabel.Size = UDim2.new(1, -36, 1, 0)
+        TitleLabel.Position = UDim2.new(0, 10, 0, 0)
         TitleLabel.BackgroundTransparency = 1
         TitleLabel.Font = Enum.Font.SourceSansBold
         TitleLabel.Text = titleText
-        TitleLabel.TextColor3 = Color3.fromRGB(240, 240, 240)
-        TitleLabel.TextSize = 14
+        TitleLabel.TextColor3 = Color3.fromRGB(245, 245, 245)
+        TitleLabel.TextSize = 15
         TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
         TitleLabel.Parent = Header
 
         local CollapseBtn = Instance.new("TextButton")
         CollapseBtn.Size = UDim2.new(0, 22, 0, 22)
-        CollapseBtn.Position = UDim2.new(1, -26, 0.5, -11)
-        CollapseBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+        CollapseBtn.AnchorPoint = Vector2.new(1, 0.5)
+        CollapseBtn.Position = UDim2.new(1, -6, 0.5, 0)
+        CollapseBtn.BackgroundColor3 = Color3.fromRGB(15, 15, 18)
         CollapseBtn.BorderSizePixel = 1
-        CollapseBtn.BorderColor3 = Color3.fromRGB(60, 60, 75)
+        CollapseBtn.BorderColor3 = Color3.fromRGB(80, 80, 95)
         CollapseBtn.Font = Enum.Font.SourceSansBold
         CollapseBtn.Text = "-"
-        CollapseBtn.TextColor3 = Color3.fromRGB(240, 240, 240)
+        CollapseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
         CollapseBtn.TextSize = 14
         CollapseBtn.Parent = Header
 
         local Container = Instance.new("ScrollingFrame")
         Container.Name = "Container"
-        Container.Size = UDim2.new(1, -8, 1, -34)
-        Container.Position = UDim2.new(0, 4, 0, 30)
+        Container.Size = UDim2.new(1, -10, 1, -36)
+        Container.Position = UDim2.new(0, 5, 0, 32)
         Container.BackgroundTransparency = 1
         Container.BorderSizePixel = 0
         Container.CanvasSize = UDim2.new(0, 0, 0, 0)
         Container.AutomaticCanvasSize = Enum.AutomaticSize.Y
         Container.ScrollBarThickness = 3
-        Container.ScrollBarImageColor3 = Color3.fromRGB(80, 80, 100)
+        Container.ScrollBarImageColor3 = Color3.fromRGB(90, 90, 110)
         Container.Parent = Window
 
         local Layout = Instance.new("UIListLayout")
         Layout.SortOrder = Enum.SortOrder.LayoutOrder
-        Layout.Padding = UDim.new(0, 3)
+        Layout.Padding = UDim.new(0, 4)
         Layout.Parent = Container
 
         local collapsed = false
-        local fullHeight = UDim2.new(0, 200, 0, 360)
-        local collapsedHeight = UDim2.new(0, 200, 0, 28)
+        local fullHeight = UDim2.new(0, 220, 0, 380)
+        local collapsedHeight = UDim2.new(0, 220, 0, 30)
 
         CollapseBtn.MouseButton1Click:Connect(function()
             collapsed = not collapsed
@@ -134,22 +135,22 @@ function Library.new(hubName, toggleKey)
         function windowAPI:AddButton(text, callback)
             callback = callback or function() end
             local btn = Instance.new("TextButton")
-            btn.Size = UDim2.new(1, 0, 0, 28)
-            btn.BackgroundColor3 = Color3.fromRGB(12, 12, 15)
+            btn.Size = UDim2.new(1, 0, 0, 30)
+            btn.BackgroundColor3 = Color3.fromRGB(15, 15, 18)
             btn.BorderSizePixel = 1
-            btn.BorderColor3 = Color3.fromRGB(45, 45, 55)
+            btn.BorderColor3 = Color3.fromRGB(60, 60, 75)
             btn.AutoButtonColor = false
             btn.Font = Enum.Font.SourceSans
             btn.Text = text
-            btn.TextColor3 = Color3.fromRGB(210, 210, 210)
+            btn.TextColor3 = Color3.fromRGB(220, 220, 220)
             btn.TextSize = 13
             btn.Parent = Container
 
             btn.MouseButton1Click:Connect(function()
                 task.spawn(callback)
-                TweenService:Create(btn, TweenInfo.new(0.08), {BackgroundColor3 = Color3.fromRGB(35, 35, 45)}):Play()
+                TweenService:Create(btn, TweenInfo.new(0.08), {BackgroundColor3 = Color3.fromRGB(40, 40, 55)}):Play()
                 task.wait(0.12)
-                TweenService:Create(btn, TweenInfo.new(0.12), {BackgroundColor3 = Color3.fromRGB(12, 12, 15)}):Play()
+                TweenService:Create(btn, TweenInfo.new(0.12), {BackgroundColor3 = Color3.fromRGB(15, 15, 18)}):Play()
             end)
             return btn
         end
@@ -159,24 +160,24 @@ function Library.new(hubName, toggleKey)
             local toggled = default or false
 
             local btn = Instance.new("TextButton")
-            btn.Size = UDim2.new(1, 0, 0, 28)
-            btn.BackgroundColor3 = Color3.fromRGB(12, 12, 15)
+            btn.Size = UDim2.new(1, 0, 0, 30)
+            btn.BackgroundColor3 = Color3.fromRGB(15, 15, 18)
             btn.BorderSizePixel = 1
-            btn.BorderColor3 = Color3.fromRGB(45, 45, 55)
+            btn.BorderColor3 = Color3.fromRGB(60, 60, 75)
             btn.AutoButtonColor = false
             btn.Font = Enum.Font.SourceSans
             btn.Text = "  " .. text
-            btn.TextColor3 = Color3.fromRGB(210, 210, 210)
+            btn.TextColor3 = Color3.fromRGB(220, 220, 220)
             btn.TextSize = 13
             btn.TextXAlignment = Enum.TextXAlignment.Left
             btn.Parent = Container
 
             local checkbox = Instance.new("Frame")
             checkbox.Size = UDim2.new(0, 16, 0, 16)
-            checkbox.Position = UDim2.new(1, -20, 0.5, -8)
-            checkbox.BackgroundColor3 = Color3.fromRGB(8, 8, 10)
+            checkbox.Position = UDim2.new(1, -22, 0.5, -8)
+            checkbox.BackgroundColor3 = Color3.fromRGB(10, 10, 12)
             checkbox.BorderSizePixel = 1
-            checkbox.BorderColor3 = Color3.fromRGB(50, 50, 65)
+            checkbox.BorderColor3 = Color3.fromRGB(70, 70, 85)
             checkbox.Parent = btn
 
             local checkmark = Instance.new("TextLabel")
@@ -198,11 +199,11 @@ function Library.new(hubName, toggleKey)
 
         function windowAPI:AddLabel(text)
             local lbl = Instance.new("TextLabel")
-            lbl.Size = UDim2.new(1, 0, 0, 22)
+            lbl.Size = UDim2.new(1, 0, 0, 24)
             lbl.BackgroundTransparency = 1
             lbl.Font = Enum.Font.SourceSansBold
             lbl.Text = text
-            lbl.TextColor3 = Color3.fromRGB(150, 150, 170)
+            lbl.TextColor3 = Color3.fromRGB(170, 170, 190)
             lbl.TextSize = 13
             lbl.TextXAlignment = Enum.TextXAlignment.Center
             lbl.Parent = Container
