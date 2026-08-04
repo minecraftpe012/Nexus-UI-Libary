@@ -331,7 +331,8 @@ function Library:CreateWindow(titleText, hubName, toggleKey)
     TabBar.BackgroundTransparency = 1
     TabBar.BorderSizePixel = 0
     TabBar.ScrollBarThickness = 0
-    TabBar.CanvasSize = UDim2.new(0, 0, 0, 0)
+    TabBar.CanvasSize = UDim2.new(0, 0, 0, 28)
+    TabBar.AutomaticCanvasSize = Enum.AutomaticSize.X
     TabBar.ZIndex = 2
     TabBar.Parent = Window
 
@@ -341,9 +342,9 @@ function Library:CreateWindow(titleText, hubName, toggleKey)
     TabLayout.Padding = UDim.new(0, 6)
     TabLayout.Parent = TabBar
 
-    -- Update tab bar canvas size dynamically when tabs are added
+    -- Dynamic Canvas Sizing Backup
     trackConnection(TabLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-        TabBar.CanvasSize = UDim2.new(0, TabLayout.AbsoluteContentSize.X + 10, 0, 0)
+        TabBar.CanvasSize = UDim2.new(0, TabLayout.AbsoluteContentSize.X + 10, 0, 28)
     end))
 
     -- Content Container
@@ -402,7 +403,7 @@ function Library:CreateWindow(titleText, hubName, toggleKey)
 
     function windowAPI:CreateTab(tabName)
         local tabBtn = Instance.new("TextButton")
-        tabBtn.Size = UDim2.new(0, 95, 1, 0)
+        tabBtn.Size = UDim2.new(0, 95, 0, 28) -- Fixed: Explicit 28px height
         tabBtn.BackgroundColor3 = Theme.TabBackground
         tabBtn.BorderSizePixel = 0
         tabBtn.Font = Theme.FontBold
@@ -433,7 +434,6 @@ function Library:CreateWindow(titleText, hubName, toggleKey)
         pageLayout.Padding = UDim.new(0, 6)
         pageLayout.Parent = tabPage
 
-        -- Update tab page canvas height automatically when elements are added
         trackConnection(pageLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
             tabPage.CanvasSize = UDim2.new(0, 0, 0, pageLayout.AbsoluteContentSize.Y + 10)
         end))
