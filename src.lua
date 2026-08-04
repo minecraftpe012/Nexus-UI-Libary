@@ -182,11 +182,14 @@ function Library.new(hubName, toggleKey)
             btn.BorderColor3 = Color3.fromRGB(35, 35, 35)
             btn.AutoButtonColor = false
             btn.Font = Enum.Font.SourceSans
-            btn.Text = "  " .. text
+            btn.Text = "  " + text
             btn.TextColor3 = Color3.fromRGB(220, 220, 220)
             btn.TextSize = 13
             btn.TextXAlignment = Enum.TextXAlignment.Left
             btn.Parent = Container
+
+            -- Fix string concatenation for Roblox Luau
+            btn.Text = "  " .. text
 
             local btnCorner = Instance.new("UICorner")
             btnCorner.CornerRadius = UDim.new(0, 4)
@@ -195,9 +198,7 @@ function Library.new(hubName, toggleKey)
             local checkbox = Instance.new("Frame")
             checkbox.Size = UDim2.new(0, 16, 0, 16)
             checkbox.Position = UDim2.new(1, -22, 0.5, -8)
-            checkbox.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
             checkbox.BorderSizePixel = 1
-            checkbox.BorderColor3 = Color3.fromRGB(45, 45, 45)
             checkbox.Parent = btn
 
             local boxCorner = Instance.new("UICorner")
@@ -208,14 +209,28 @@ function Library.new(hubName, toggleKey)
             checkmark.Size = UDim2.new(1, 0, 1, 0)
             checkmark.BackgroundTransparency = 1
             checkmark.Font = Enum.Font.SourceSansBold
-            checkmark.Text = toggled and "✓" or ""
-            checkmark.TextColor3 = Color3.fromRGB(0, 255, 120)
-            checkmark.TextSize = 14
+            checkmark.TextSize = 13
             checkmark.Parent = checkbox
+
+            local function updateVisuals()
+                if toggled then
+                    checkbox.BackgroundColor3 = Color3.fromRGB(0, 200, 80)
+                    checkbox.BorderColor3 = Color3.fromRGB(0, 255, 100)
+                    checkmark.Text = "✓"
+                    checkmark.TextColor3 = Color3.fromRGB(255, 255, 255)
+                else
+                    checkbox.BackgroundColor3 = Color3.fromRGB(200, 40, 40)
+                    checkbox.BorderColor3 = Color3.fromRGB(255, 60, 60)
+                    checkmark.Text = "✕"
+                    checkmark.TextColor3 = Color3.fromRGB(255, 255, 255)
+                end
+            end
+
+            updateVisuals()
 
             btn.MouseButton1Click:Connect(function()
                 toggled = not toggled
-                checkmark.Text = toggled and "✓" or ""
+                updateVisuals()
                 pcall(callback, toggled)
             end)
             return btn
