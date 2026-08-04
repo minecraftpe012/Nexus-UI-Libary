@@ -237,7 +237,22 @@ function Library.new(hubName, toggleKey)
         return windowAPI
     end
 
-    return WindowManager
+    return Library
 end
+
+--[[ Example Usage:
+local GUI = Library.new("PepsiSwarm", Enum.KeyCode.RightShift)
+local Window = GUI:AddWindow("Farmer", UDim2.new(0, 50, 0, 50))
+
+Window:AddLabel("Main Settings")
+
+Window:AddToggle("Auto Farm", false, function(state)
+    print("Auto Farm is now:", state)
+end)
+
+Window:AddButton("Collect Treasures", function()
+    print("Clicked!")
+end)
+]]
 
 return Library
