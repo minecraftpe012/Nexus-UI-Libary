@@ -5,44 +5,55 @@ local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = game:GetService("Players").LocalPlayer
 
 local ScreenGui = nil
+local isConnected = false
+
+local function cleanupOldInstances(hubName)
+    local guiName = hubName or "PepsiSwarmGUI"
+    for _, parent in ipairs({CoreGui, LocalPlayer and LocalPlayer:FindFirstChild("PlayerGui")}) do
+        if parent then
+            local existing = parent:FindFirstChild(guiName)
+            if existing then
+                existing:Destroy()
+            end
+        end
+    end
+end
 
 local function initGui(hubName, toggleKey)
     local guiName = hubName or "PepsiSwarmGUI"
     
-    -- Remove old GUI if it already exists
-    local existingGui = CoreGui:FindFirstChild(guiName)
-    if not existingGui and LocalPlayer then
-        local playerGui = LocalPlayer:FindFirstChild("PlayerGui")
-        if playerGui then
-            existingGui = playerGui:FindFirstChild(guiName)
-        end
-    end
-    if existingGui then
-        existingGui:Destroy()
-    end
+    if not ScreenGui or not ScreenGui.Parent then
+        cleanupOldInstances(guiName)
 
-    ScreenGui = Instance.new("ScreenGui")
-    ScreenGui.Name = guiName
-    ScreenGui.ResetOnSpawn = false
+        ScreenGui = Instance.new("ScreenGui")
+        ScreenGui.Name = guiName
+        ScreenGui.ResetOnSpawn = false
 
-    if syn and syn.protect_gui then
-        syn.protect_gui(ScreenGui)
-        ScreenGui.Parent = CoreGui
-    else
-        pcall(function()
+        local success = pcall(function()
+            if syn and syn.protect_gui then
+                syn.protect_gui(ScreenGui)
+            end
             ScreenGui.Parent = CoreGui
         end)
-        if ScreenGui.Parent ~= CoreGui then
-            ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+        if not success or ScreenGui.Parent ~= CoreGui then
+            pcall(function()
+                ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+            end)
         end
     end
 
-    local boundKey = toggleKey or Enum.KeyCode.RightShift
-    UserInputService.InputBegan:Connect(function(input, gameProcessed)
-        if input.KeyCode == boundKey then
-            ScreenGui.Enabled = not ScreenGui.Enabled
-        end
-    end)
+    if not isConnected then
+        isConnected = true
+        local boundKey = toggleKey or Enum.KeyCode.RightShift
+        UserInputService.InputBegan:Connect(function(input, gameProcessed)
+            if input.KeyCode == boundKey and not gameProcessed then
+                if ScreenGui then
+                    ScreenGui.Enabled = not ScreenGui.Enabled
+                end
+            end
+        end)
+    end
 end
 
 function Library:AddWindow(titleText, defaultPosition, hubName, toggleKey)
