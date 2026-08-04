@@ -73,7 +73,7 @@ local function initGui(hubName, toggleKey)
     end
 end
 
-function Library:Notify(title, text, duration)
+function Library.Notify(title, text, duration)
     if not ScreenGui or not ScreenGui.Parent or not NotifHolder or not NotifHolder.Parent then
         initGui("NexusUILibrary", Enum.KeyCode.RightShift)
     end
@@ -245,6 +245,10 @@ function Library:AddWindow(titleText, defaultPosition, hubName, toggleKey)
     end)
 
     local windowAPI = {}
+
+    function windowAPI:Notify(title, text, duration)
+        Library.Notify(title, text, duration)
+    end
 
     function windowAPI:AddButton(text, callback)
         callback = callback or function() end
