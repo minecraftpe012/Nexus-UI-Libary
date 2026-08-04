@@ -13,9 +13,11 @@ local currentKeybind = Enum.KeyCode.RightShift
 
 -- Configuration and Theme State
 local togglesRegistry = {}
+local activeTogglesList = {}
 local currentAccent = Color3.fromRGB(0, 200, 80)
 local rgbEnabled = false
 local rgbConnection = nil
+local settingsWindowInstance = nil
 
 local CONFIG_FILE = "NexusUI_Config.json"
 
@@ -65,6 +67,9 @@ local function cleanupOldInstances()
     end
 end
 
+-- Forward declaration
+local createSettingsWindow
+
 local function initGui(hubName, toggleKey)
     local guiName = hubName or "NexusUILibrary"
     currentKeybind = toggleKey or currentKeybind
@@ -111,6 +116,14 @@ local function initGui(hubName, toggleKey)
             end
         end)
     end
+
+    -- Automatically spawn settings window on the right side if not already created
+    task.spawn(function()
+        task.wait(0.05)
+        if not settingsWindowInstance then
+            Library:CreateSettingsWindow()
+        end
+    end)
 end
 
 function Library:Notify(title, text, duration)
@@ -171,7 +184,9 @@ function Library:Notify(title, text, duration)
 end
 
 function Library:AddWindow(titleText, defaultPosition, hubName, toggleKey)
-    initGui(hubName, toggleKey)
+    if not ScreenGui then
+        initGui(hubName, toggleKey)
+    end
 
     local Window = Instance.new("Frame")
     Window.Name = titleText .. "Window"
@@ -360,6 +375,12 @@ function Library:AddWindow(titleText, defaultPosition, hubName, toggleKey)
             }):Play()
         end
 
+        table.insert(activeTogglesList, {
+            frame = checkbox,
+            getToggled = function() return toggled end,
+            update = updateVisuals
+        })
+
         updateVisuals(0)
         if toggled then
             task.spawn(function()
@@ -394,9 +415,11 @@ function Library:AddWindow(titleText, defaultPosition, hubName, toggleKey)
     return windowAPI
 end
 
--- Automatically create the Settings Window on the right side of the screen
 function Library:CreateSettingsWindow()
-    local SettingsWin = self:AddWindow("Settings", UDim2.new(0, 280, 0, 50), "NexusUILibrary", currentKeybind)
+    if settingsWindowInstance and settingsWindowInstance.Parent then return settingsWindowInstance end
+
+    -- Position automatically on the right side of the screen
+    local SettingsWin = self:AddWindow("Settings", UDim2.new(1, -230, 0, 50), "NexusUILibrary", currentKeybind)
 
     SettingsWin:AddLabel("UI Configuration")
 
@@ -406,6 +429,11 @@ function Library:CreateSettingsWindow()
             rgbConnection = RunService.RenderStepped:Connect(function()
                 local hue = tick() % 5 / 5
                 currentAccent = Color3.fromHSV(hue, 1, 1)
+                for _, item in ipairs(activeTogglesList) do
+                    if item.frame and item.frame.Parent and item.getToggled() then
+                        item.frame.BackgroundColor3 = currentAccent
+                    end
+                end
             end)
         else
             if rgbConnection then
@@ -413,29 +441,35 @@ function Library:CreateSettingsWindow()
                 rgbConnection = nil
             end
             currentAccent = Color3.fromRGB(0, 200, 80)
+            for _, item in ipairs(activeTogglesList) do
+                if item.frame and item.frame.Parent then
+                    item.update(0.15)
+                end
+            end
         end
     end)
 
     SettingsWin:AddButton("Save Config File", function()
         saveConfig()
-        self:Notify("Settings", "Configuration saved successfully!", 3)
+        self:Notify("Settings", "Configuration saved to file!", 3)
     end)
 
     SettingsWin:AddLabel("Keybind Manager")
 
-    local keybindBtn = SettingsWin:AddButton("Bind: " .. tostring(currentKeybind.Name), function()
-        SettingsWin:AddLabel("Press any key...")
+    local bindBtn = SettingsWin:AddButton("Toggle Key: " .. tostring(currentKeybind.Name), function()
+        self:Notify("Keybind", "Press any keyboard key...", 3)
         local connection
         connection = UserInputService.InputBegan:Connect(function(input)
             if input.UserInputType == Enum.UserInputType.Keyboard then
                 currentKeybind = input.KeyCode
-                -- Update button text or notify
-                self:Notify("Keybind", "Toggle key changed to " .. tostring(currentKeybind.Name), 3)
+                bindBtn.Text = "Toggle Key: " .. tostring(currentKeybind.Name)
+                self:Notify("Keybind", "Toggle key updated to " .. tostring(currentKeybind.Name), 3)
                 connection:Disconnect()
             end
         end)
     end)
 
+    settingsWindowInstance = SettingsWin
     return SettingsWin
 end
 
