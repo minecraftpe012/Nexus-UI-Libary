@@ -10,6 +10,7 @@ local ScreenGui = nil
 local NotifHolder = nil
 local isConnected = false
 local currentKeybind = Enum.KeyCode.RightShift
+local isRebinding = false
 
 local windowCount = 0
 local WINDOW_WIDTH = 220
@@ -123,7 +124,8 @@ local function initGui(hubName, toggleKey)
     if not isConnected then
         isConnected = true
         UserInputService.InputBegan:Connect(function(input, gameProcessed)
-            if not gameProcessed and input.UserInputType == Enum.UserInputType.Keyboard then
+            if gameProcessed or isRebinding then return end
+            if input.UserInputType == Enum.UserInputType.Keyboard then
                 if input.KeyCode ~= Enum.KeyCode.Unknown and input.KeyCode == currentKeybind then
                     if ScreenGui then
                         ScreenGui.Enabled = not ScreenGui.Enabled
@@ -204,7 +206,7 @@ function Library:AddWindow(titleText, defaultPosition, hubName, toggleKey)
 
     local Window = Instance.new("Frame")
     Window.Name = titleText .. "Window"
-    Window.Size = UDim2.new(0, WINDOW_WIDTH, 0, 48)
+    Window.Size = UDim2.new(0, WINDOW_WIDTH, 0, 46)
     Window.Position = defaultPosition
     Window.BackgroundColor3 = Theme.WindowBackground
     Window.BorderSizePixel = 0
@@ -266,12 +268,15 @@ function Library:AddWindow(titleText, defaultPosition, hubName, toggleKey)
         if collapsed then
             Window.Size = UDim2.new(0, WINDOW_WIDTH, 0, 36)
         else
-            local contentY = Layout.AbsoluteContentSize.Y
-            Window.Size = UDim2.new(0, WINDOW_WIDTH, 0, 36 + 12 + contentY)
+            local totalHeight = 0
+            for _, child in ipairs(Container:GetChildren()) do
+                if child:IsA("GuiObject") and child.Visible then
+                    totalHeight = totalHeight + child.Size.Y.Offset + Layout.Padding.Offset
+                end
+            end
+            Window.Size = UDim2.new(0, WINDOW_WIDTH, 0, 36 + 10 + totalHeight)
         end
     end
-
-    Layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateWindowSize)
 
     CollapseBtn.MouseButton1Click:Connect(function()
         collapsed = not collapsed
@@ -336,6 +341,8 @@ function Library:AddWindow(titleText, defaultPosition, hubName, toggleKey)
             task.wait(0.12)
             TweenService:Create(btn, TweenInfo.new(0.12), {BackgroundColor3 = Theme.ElementBackground}):Play()
         end)
+
+        updateWindowSize()
         return btn
     end
 
@@ -400,6 +407,7 @@ function Library:AddWindow(titleText, defaultPosition, hubName, toggleKey)
             saveConfig()
         end)
 
+        updateWindowSize()
         return btn
     end
 
@@ -491,6 +499,7 @@ function Library:AddWindow(titleText, defaultPosition, hubName, toggleKey)
             end
         end)
 
+        updateWindowSize()
         return sliderFrame
     end
 
@@ -537,6 +546,7 @@ function Library:AddWindow(titleText, defaultPosition, hubName, toggleKey)
             pcall(callback, textBox.Text, enterPressed)
         end)
 
+        updateWindowSize()
         return boxFrame
     end
 
@@ -550,6 +560,8 @@ function Library:AddWindow(titleText, defaultPosition, hubName, toggleKey)
         lbl.TextSize = 13
         lbl.TextXAlignment = Enum.TextXAlignment.Center
         lbl.Parent = Container
+
+        updateWindowSize()
         return lbl
     end
 
@@ -597,15 +609,20 @@ function Library:CreateSettingsWindow()
     SettingsWin:AddLabel("Keybind Manager")
 
     local bindBtn = SettingsWin:AddButton("Toggle Key: " .. tostring(currentKeybind.Name), function()
-        self:Notify("Keybind", "Press any keyboard key...", 3)
-        task.wait(0.1)
+        if isRebinding then return end
+        isRebinding = true
+        self:Notify("Keybind", "Press any key...", 2)
+
         local connection
         connection = UserInputService.InputBegan:Connect(function(input)
             if input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode ~= Enum.KeyCode.Unknown then
                 currentKeybind = input.KeyCode
                 bindBtn.Text = "Toggle Key: " .. tostring(currentKeybind.Name)
-                self:Notify("Keybind", "Toggle key updated to " .. tostring(currentKeybind.Name), 3)
+                self:Notify("Keybind", "Key set to " .. tostring(currentKeybind.Name), 2)
                 connection:Disconnect()
+                task.delay(0.2, function()
+                    isRebinding = false
+                end)
             end
         end)
     end)
