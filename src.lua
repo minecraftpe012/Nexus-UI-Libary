@@ -5,6 +5,7 @@ local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = game:GetService("Players").LocalPlayer
 
 local ScreenGui = nil
+local NotifHolder = nil
 local isConnected = false
 
 local function cleanupOldInstances(hubName)
@@ -43,6 +44,21 @@ local function initGui(hubName, toggleKey)
         end
     end
 
+    if not NotifHolder or not NotifHolder.Parent then
+        NotifHolder = Instance.new("Frame")
+        NotifHolder.Name = "NotificationHolder"
+        NotifHolder.Size = UDim2.new(0, 240, 1, -40)
+        NotifHolder.Position = UDim2.new(1, -260, 0, 20)
+        NotifHolder.BackgroundTransparency = 1
+        NotifHolder.Parent = ScreenGui
+
+        local layout = Instance.new("UIListLayout")
+        layout.SortOrder = Enum.SortOrder.LayoutOrder
+        layout.VerticalAlignment = Enum.VerticalAlignment.Bottom
+        layout.Padding = UDim.new(0, 6)
+        layout.Parent = NotifHolder
+    end
+
     if not isConnected then
         isConnected = true
         local boundKey = toggleKey or Enum.KeyCode.RightShift
@@ -54,6 +70,61 @@ local function initGui(hubName, toggleKey)
             end
         end)
     end
+end
+
+function Library:Notify(title, text, duration)
+    initGui("NexusUILibrary", Enum.KeyCode.RightShift)
+
+    title = title or "Notification"
+    text = text or ""
+    duration = duration or 3
+
+    local notif = Instance.new("Frame")
+    notif.Size = UDim2.new(1, 0, 0, 52)
+    notif.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+    notif.BorderColor3 = Color3.fromRGB(45, 45, 45)
+    notif.BorderSizePixel = 1
+    notif.BackgroundTransparency = 1
+    notif.Parent = NotifHolder
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 6)
+    corner.Parent = notif
+
+    local titleLabel = Instance.new("TextLabel")
+    titleLabel.Size = UDim2.new(1, -20, 0, 20)
+    titleLabel.Position = UDim2.new(0, 10, 0, 6)
+    titleLabel.BackgroundTransparency = 1
+    titleLabel.Font = Enum.Font.SourceSansBold
+    titleLabel.Text = title
+    titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    titleLabel.TextSize = 14
+    titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+    titleLabel.Parent = notif
+
+    local textLabel = Instance.new("TextLabel")
+    textLabel.Size = UDim2.new(1, -20, 0, 20)
+    textLabel.Position = UDim2.new(0, 10, 0, 26)
+    textLabel.BackgroundTransparency = 1
+    textLabel.Font = Enum.Font.SourceSans
+    textLabel.Text = text
+    textLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
+    textLabel.TextSize = 12
+    textLabel.TextXAlignment = Enum.TextXAlignment.Left
+    textLabel.TextWrapped = true
+    textLabel.Parent = notif
+
+    TweenService:Create(notif, TweenInfo.new(0.2), {BackgroundTransparency = 0}):Play()
+
+    task.delay(duration, function()
+        if notif and notif.Parent then
+            local tween = TweenService:Create(notif, TweenInfo.new(0.2), {BackgroundTransparency = 1})
+            tween:Play()
+            tween.Completed:Connect(function()
+                notif:Destroy()
+            end)
+        end
+    end)
 end
 
 function Library:AddWindow(titleText, defaultPosition, hubName, toggleKey)
