@@ -98,7 +98,6 @@ local function initGui()
     layout.Padding = UDim.new(0, 6)
     layout.Parent = NotifHolder
 
-    -- Toggle visibility hotkey
     trackConnection(UserInputService.InputBegan:Connect(function(input, gameProcessed)
         if gameProcessed or isRebinding then return end
         if input.UserInputType == Enum.UserInputType.Keyboard then
@@ -110,10 +109,6 @@ local function initGui()
         end
     end))
 end
-
---------------------------------------------------------------------------------
--- NOTIFICATIONS
---------------------------------------------------------------------------------
 
 function Library:Notify(title, text, duration)
     if not ScreenGui or not ScreenGui.Parent then
@@ -187,10 +182,6 @@ function Library:Notify(title, text, duration)
     end)
 end
 
---------------------------------------------------------------------------------
--- MULTI-WINDOW GENERATOR (`Library:AddWindow` or `Library:CreateWindow`)
---------------------------------------------------------------------------------
-
 function Library:AddWindow(windowTitle)
     initGui()
 
@@ -209,7 +200,6 @@ function Library:AddWindow(windowTitle)
     WindowCorner.CornerRadius = UDim.new(0, 6)
     WindowCorner.Parent = Window
 
-    -- Header
     local Header = Instance.new("Frame")
     Header.Name = "Header"
     Header.Size = UDim2.new(1, 0, 0, 30)
@@ -242,7 +232,6 @@ function Library:AddWindow(windowTitle)
     MinimizeBtn.TextSize = 14
     MinimizeBtn.Parent = Header
 
-    -- Container for items
     local Container = Instance.new("Frame")
     Container.Name = "Container"
     Container.Size = UDim2.new(1, -8, 0, 0)
@@ -270,7 +259,6 @@ function Library:AddWindow(windowTitle)
         Window.Size = isMinimized and UDim2.new(0, 165, 0, 30) or UDim2.new(0, 165, 0, ContainerLayout.AbsoluteContentSize.Y + 40)
     end)
 
-    -- Dragging Logic
     local dragging, dragInput, dragStart, startPos
     Header.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -297,10 +285,6 @@ function Library:AddWindow(windowTitle)
             Window.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
         end
     end))
-
-    ----------------------------------------------------------------------------
-    -- WINDOW ELEMENTS
-    ----------------------------------------------------------------------------
 
     local windowAPI = {}
 
