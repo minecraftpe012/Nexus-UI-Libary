@@ -331,7 +331,6 @@ function Library:CreateWindow(titleText, hubName, toggleKey)
     TabBar.BackgroundTransparency = 1
     TabBar.BorderSizePixel = 0
     TabBar.ScrollBarThickness = 0
-    TabBar.AutomaticCanvasSize = Enum.AutomaticSize.X
     TabBar.CanvasSize = UDim2.new(0, 0, 0, 0)
     TabBar.ZIndex = 2
     TabBar.Parent = Window
@@ -341,6 +340,11 @@ function Library:CreateWindow(titleText, hubName, toggleKey)
     TabLayout.SortOrder = Enum.SortOrder.LayoutOrder
     TabLayout.Padding = UDim.new(0, 6)
     TabLayout.Parent = TabBar
+
+    -- Update tab bar canvas size dynamically when tabs are added
+    trackConnection(TabLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        TabBar.CanvasSize = UDim2.new(0, TabLayout.AbsoluteContentSize.X + 10, 0, 0)
+    end))
 
     -- Content Container
     local ContentHolder = Instance.new("Frame")
@@ -420,7 +424,6 @@ function Library:CreateWindow(titleText, hubName, toggleKey)
         tabPage.ScrollBarThickness = 3
         tabPage.ScrollBarImageColor3 = Theme.Border
         tabPage.Visible = false
-        tabPage.AutomaticCanvasSize = Enum.AutomaticSize.Y
         tabPage.CanvasSize = UDim2.new(0, 0, 0, 0)
         tabPage.ZIndex = 3
         tabPage.Parent = ContentHolder
@@ -430,15 +433,12 @@ function Library:CreateWindow(titleText, hubName, toggleKey)
         pageLayout.Padding = UDim.new(0, 6)
         pageLayout.Parent = tabPage
 
-        local tabAPI = {}
+        -- Update tab page canvas height automatically when elements are added
+        trackConnection(pageLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+            tabPage.CanvasSize = UDim2.new(0, 0, 0, pageLayout.AbsoluteContentSize.Y + 10)
+        end))
 
-        local function refreshCanvas()
-            task.defer(function()
-                if pageLayout and tabPage then
-                    tabPage.CanvasSize = UDim2.new(0, 0, 0, pageLayout.AbsoluteContentSize.Y + 10)
-                end
-            end)
-        end
+        local tabAPI = {}
 
         local function activateTab()
             for _, t in pairs(windowAPI.Tabs) do
@@ -450,7 +450,6 @@ function Library:CreateWindow(titleText, hubName, toggleKey)
             tabBtn.BackgroundColor3 = Theme.TabSelected
             tabBtn.TextColor3 = Theme.Text
             windowAPI.ActiveTab = tabAPI
-            refreshCanvas()
         end
 
         tabBtn.MouseButton1Click:Connect(activateTab)
@@ -490,7 +489,6 @@ function Library:CreateWindow(titleText, hubName, toggleKey)
                 TweenService:Create(btn, TweenInfo.new(0.12), {BackgroundColor3 = Theme.ElementBackground}):Play()
             end)
 
-            refreshCanvas()
             return btn
         end
 
@@ -558,7 +556,6 @@ function Library:CreateWindow(titleText, hubName, toggleKey)
                 Library:SaveConfig()
             end)
 
-            refreshCanvas()
             return btn
         end
 
@@ -663,7 +660,6 @@ function Library:CreateWindow(titleText, hubName, toggleKey)
                 end
             end))
 
-            refreshCanvas()
             return sliderFrame
         end
 
@@ -720,7 +716,6 @@ function Library:CreateWindow(titleText, hubName, toggleKey)
                 Library:SaveConfig()
             end)
 
-            refreshCanvas()
             return boxFrame
         end
 
@@ -736,7 +731,6 @@ function Library:CreateWindow(titleText, hubName, toggleKey)
             lbl.ZIndex = 4
             lbl.Parent = tabPage
 
-            refreshCanvas()
             return lbl
         end
 
