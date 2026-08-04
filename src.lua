@@ -16,7 +16,7 @@ local Theme = {
     HeaderBackground = Color3.fromRGB(25, 25, 25),
     ElementBackground = Color3.fromRGB(28, 28, 32),
     Accent = Color3.fromRGB(220, 35, 35),
-    ToggleOff = Color3.fromRGB(220, 35, 35), -- Matches the solid red squares in screenshot
+    ToggleOff = Color3.fromRGB(220, 35, 35),
     Text = Color3.fromRGB(255, 255, 255),
     TextDim = Color3.fromRGB(180, 180, 180),
     Border = Color3.fromRGB(40, 40, 40),
@@ -58,6 +58,7 @@ function Library:Destroy()
         ScreenGui = nil
     end
     
+    NotifHolder = nil
     windowOffsetCount = 0
     cleanupOldInstances()
 end
@@ -84,6 +85,19 @@ local function initGui()
         end)
     end
 
+    NotifHolder = Instance.new("Frame")
+    NotifHolder.Name = "NotificationHolder"
+    NotifHolder.Size = UDim2.new(0, 240, 1, -40)
+    NotifHolder.Position = UDim2.new(1, -260, 0, 20)
+    NotifHolder.BackgroundTransparency = 1
+    NotifHolder.Parent = ScreenGui
+
+    local layout = Instance.new("UIListLayout")
+    layout.SortOrder = Enum.SortOrder.LayoutOrder
+    layout.VerticalAlignment = Enum.VerticalAlignment.Bottom
+    layout.Padding = UDim.new(0, 6)
+    layout.Parent = NotifHolder
+
     -- Toggle visibility hotkey
     trackConnection(UserInputService.InputBegan:Connect(function(input, gameProcessed)
         if gameProcessed or isRebinding then return end
@@ -98,19 +112,94 @@ local function initGui()
 end
 
 --------------------------------------------------------------------------------
+-- NOTIFICATIONS
+--------------------------------------------------------------------------------
+
+function Library:Notify(title, text, duration)
+    if not ScreenGui or not ScreenGui.Parent then
+        initGui()
+    end
+
+    title = title or "Notification"
+    text = text or ""
+    duration = duration or 3
+
+    if not NotifHolder or not NotifHolder.Parent then
+        NotifHolder = Instance.new("Frame")
+        NotifHolder.Name = "NotificationHolder"
+        NotifHolder.Size = UDim2.new(0, 240, 1, -40)
+        NotifHolder.Position = UDim2.new(1, -260, 0, 20)
+        NotifHolder.BackgroundTransparency = 1
+        NotifHolder.Parent = ScreenGui
+
+        local layout = Instance.new("UIListLayout")
+        layout.SortOrder = Enum.SortOrder.LayoutOrder
+        layout.VerticalAlignment = Enum.VerticalAlignment.Bottom
+        layout.Padding = UDim.new(0, 6)
+        layout.Parent = NotifHolder
+    end
+
+    local notif = Instance.new("Frame")
+    notif.Size = UDim2.new(1, 0, 0, 56)
+    notif.BackgroundColor3 = Theme.WindowBackground
+    notif.BorderColor3 = Theme.Border
+    notif.BorderSizePixel = 1
+    notif.BackgroundTransparency = 1
+    notif.Parent = NotifHolder
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 6)
+    corner.Parent = notif
+
+    local titleLabel = Instance.new("TextLabel")
+    titleLabel.Size = UDim2.new(1, -20, 0, 20)
+    titleLabel.Position = UDim2.new(0, 10, 0, 6)
+    titleLabel.BackgroundTransparency = 1
+    titleLabel.Font = Theme.FontBold
+    titleLabel.Text = title
+    titleLabel.TextColor3 = Theme.Text
+    titleLabel.TextSize = 14
+    titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+    titleLabel.Parent = notif
+
+    local textLabel = Instance.new("TextLabel")
+    textLabel.Size = UDim2.new(1, -20, 0, 24)
+    textLabel.Position = UDim2.new(0, 10, 0, 26)
+    textLabel.BackgroundTransparency = 1
+    textLabel.Font = Theme.FontRegular
+    textLabel.Text = text
+    textLabel.TextColor3 = Theme.TextDim
+    textLabel.TextSize = 12
+    textLabel.TextXAlignment = Enum.TextXAlignment.Left
+    textLabel.TextWrapped = true
+    textLabel.Parent = notif
+
+    TweenService:Create(notif, TweenInfo.new(0.2), {BackgroundTransparency = 0}):Play()
+
+    task.delay(duration, function()
+        if notif and notif.Parent then
+            local tween = TweenService:Create(notif, TweenInfo.new(0.2), {BackgroundTransparency = 1})
+            tween:Play()
+            tween.Completed:Connect(function()
+                notif:Destroy()
+            end)
+        end
+    end)
+end
+
+--------------------------------------------------------------------------------
 -- MULTI-WINDOW GENERATOR (`Library:AddWindow` or `Library:CreateWindow`)
 --------------------------------------------------------------------------------
 
 function Library:AddWindow(windowTitle)
     initGui()
 
-    -- Calculate side-by-side spawn position for each new window
     local spawnX = 20 + (windowOffsetCount * 175)
     windowOffsetCount = windowOffsetCount + 1
 
     local Window = Instance.new("Frame")
     Window.Name = windowTitle .. "Window"
-    Window.Size = UDim2.new(0, 165, 0, 30) -- Starts auto-sizing vertically
+    Window.Size = UDim2.new(0, 165, 0, 30)
     Window.Position = UDim2.new(0, spawnX, 0, 50)
     Window.BackgroundColor3 = Theme.WindowBackground
     Window.BorderSizePixel = 0
@@ -166,7 +255,6 @@ function Library:AddWindow(windowTitle)
     ContainerLayout.Padding = UDim.new(0, 4)
     ContainerLayout.Parent = Container
 
-    -- Auto resize window height based on items added
     ContainerLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
         if Container.Visible then
             Container.Size = UDim2.new(1, -8, 0, ContainerLayout.AbsoluteContentSize.Y)
@@ -174,7 +262,6 @@ function Library:AddWindow(windowTitle)
         end
     end)
 
-    -- Minimize Toggle
     local isMinimized = false
     MinimizeBtn.MouseButton1Click:Connect(function()
         isMinimized = not isMinimized
@@ -212,7 +299,7 @@ function Library:AddWindow(windowTitle)
     end))
 
     ----------------------------------------------------------------------------
-    -- WINDOW ELEMENTS (BUTTON, TOGGLE, SLIDER, LABEL)
+    -- WINDOW ELEMENTS
     ----------------------------------------------------------------------------
 
     local windowAPI = {}
@@ -366,7 +453,6 @@ function Library:AddWindow(windowTitle)
     return windowAPI
 end
 
--- Alias so both work identically
 Library.CreateWindow = Library.AddWindow
 
 return Library
