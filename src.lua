@@ -7,9 +7,22 @@ local LocalPlayer = game:GetService("Players").LocalPlayer
 local ScreenGui = nil
 
 local function initGui(hubName, toggleKey)
-    if ScreenGui then return end
+    local guiName = hubName or "PepsiSwarmGUI"
+    
+    -- Remove old GUI if it already exists
+    local existingGui = CoreGui:FindFirstChild(guiName)
+    if not existingGui and LocalPlayer then
+        local playerGui = LocalPlayer:FindFirstChild("PlayerGui")
+        if playerGui then
+            existingGui = playerGui:FindFirstChild(guiName)
+        end
+    end
+    if existingGui then
+        existingGui:Destroy()
+    end
+
     ScreenGui = Instance.new("ScreenGui")
-    ScreenGui.Name = hubName or "PepsiSwarmGUI"
+    ScreenGui.Name = guiName
     ScreenGui.ResetOnSpawn = false
 
     if syn and syn.protect_gui then
