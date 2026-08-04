@@ -37,7 +37,7 @@ function Library.new(hubName, toggleKey)
         Window.Position = defaultPosition or UDim2.new(0, 50, 0, 50)
         Window.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
         Window.BorderSizePixel = 1
-        Window.BorderColor3 = Color3.fromRGB(35, 35, 35)
+        Window.BorderColor3 = Color3.fromRGB(45, 45, 45)
         Window.Parent = ScreenGui
 
         local WindowCorner = Instance.new("UICorner")
@@ -70,9 +70,9 @@ function Library.new(hubName, toggleKey)
         CollapseBtn.Size = UDim2.new(0, 22, 0, 22)
         CollapseBtn.AnchorPoint = Vector2.new(1, 0.5)
         CollapseBtn.Position = UDim2.new(1, -6, 0.5, 0)
-        CollapseBtn.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+        CollapseBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
         CollapseBtn.BorderSizePixel = 1
-        CollapseBtn.BorderColor3 = Color3.fromRGB(45, 45, 45)
+        CollapseBtn.BorderColor3 = Color3.fromRGB(55, 55, 55)
         CollapseBtn.Font = Enum.Font.SourceSansBold
         CollapseBtn.Text = "-"
         CollapseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -92,7 +92,7 @@ function Library.new(hubName, toggleKey)
         Container.CanvasSize = UDim2.new(0, 0, 0, 0)
         Container.AutomaticCanvasSize = Enum.AutomaticSize.Y
         Container.ScrollBarThickness = 3
-        Container.ScrollBarImageColor3 = Color3.fromRGB(60, 60, 60)
+        Container.ScrollBarImageColor3 = Color3.fromRGB(70, 70, 70)
         Container.Parent = Window
 
         local Layout = Instance.new("UIListLayout")
@@ -148,9 +148,9 @@ function Library.new(hubName, toggleKey)
             callback = callback or function() end
             local btn = Instance.new("TextButton")
             btn.Size = UDim2.new(1, 0, 0, 30)
-            btn.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+            btn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
             btn.BorderSizePixel = 1
-            btn.BorderColor3 = Color3.fromRGB(35, 35, 35)
+            btn.BorderColor3 = Color3.fromRGB(45, 45, 45)
             btn.AutoButtonColor = false
             btn.Font = Enum.Font.SourceSans
             btn.Text = text
@@ -164,9 +164,9 @@ function Library.new(hubName, toggleKey)
 
             btn.MouseButton1Click:Connect(function()
                 task.spawn(callback)
-                TweenService:Create(btn, TweenInfo.new(0.08), {BackgroundColor3 = Color3.fromRGB(25, 25, 25)}):Play()
+                TweenService:Create(btn, TweenInfo.new(0.08), {BackgroundColor3 = Color3.fromRGB(45, 45, 45)}):Play()
                 task.wait(0.12)
-                TweenService:Create(btn, TweenInfo.new(0.12), {BackgroundColor3 = Color3.fromRGB(0, 0, 0)}):Play()
+                TweenService:Create(btn, TweenInfo.new(0.12), {BackgroundColor3 = Color3.fromRGB(25, 25, 25)}):Play()
             end)
             return btn
         end
@@ -177,19 +177,16 @@ function Library.new(hubName, toggleKey)
 
             local btn = Instance.new("TextButton")
             btn.Size = UDim2.new(1, 0, 0, 30)
-            btn.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+            btn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
             btn.BorderSizePixel = 1
-            btn.BorderColor3 = Color3.fromRGB(35, 35, 35)
+            btn.BorderColor3 = Color3.fromRGB(45, 45, 45)
             btn.AutoButtonColor = false
             btn.Font = Enum.Font.SourceSans
-            btn.Text = "  " + text
+            btn.Text = "  " .. text
             btn.TextColor3 = Color3.fromRGB(220, 220, 220)
             btn.TextSize = 13
             btn.TextXAlignment = Enum.TextXAlignment.Left
             btn.Parent = Container
-
-            -- Fix string concatenation for Roblox Luau
-            btn.Text = "  " .. text
 
             local btnCorner = Instance.new("UICorner")
             btnCorner.CornerRadius = UDim.new(0, 4)
@@ -242,7 +239,7 @@ function Library.new(hubName, toggleKey)
             lbl.BackgroundTransparency = 1
             lbl.Font = Enum.Font.SourceSansBold
             lbl.Text = text
-            lbl.TextColor3 = Color3.fromRGB(150, 150, 150)
+            lbl.TextColor3 = Color3.fromRGB(160, 160, 160)
             lbl.TextSize = 13
             lbl.TextXAlignment = Enum.TextXAlignment.Center
             lbl.Parent = Container
