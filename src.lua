@@ -8,7 +8,7 @@ local ScreenGui = nil
 local isConnected = false
 
 local function cleanupOldInstances(hubName)
-    local guiName = hubName or "PepsiSwarmGUI"
+    local guiName = hubName or "NexusUILibrary"
     for _, parent in ipairs({CoreGui, LocalPlayer and LocalPlayer:FindFirstChild("PlayerGui")}) do
         if parent then
             local existing = parent:FindFirstChild(guiName)
@@ -20,7 +20,7 @@ local function cleanupOldInstances(hubName)
 end
 
 local function initGui(hubName, toggleKey)
-    local guiName = hubName or "PepsiSwarmGUI"
+    local guiName = hubName or "NexusUILibrary"
     
     if not ScreenGui or not ScreenGui.Parent then
         cleanupOldInstances(guiName)
