@@ -8,13 +8,18 @@ local ScreenGui = nil
 local NotifHolder = nil
 local isConnected = false
 
-local function cleanupOldInstances(hubName)
-    local guiName = hubName or "NexusUILibrary"
+local function cleanupOldInstances()
+    local possibleNames = {"NexusUILibrary", "PepsiSwarm", "PepsiSwarmGUI"}
     for _, parent in ipairs({CoreGui, LocalPlayer and LocalPlayer:FindFirstChild("PlayerGui")}) do
         if parent then
-            local existing = parent:FindFirstChild(guiName)
-            if existing then
-                existing:Destroy()
+            for _, child in ipairs(parent:GetChildren()) do
+                if child:IsA("ScreenGui") then
+                    for _, name in ipairs(possibleNames) do
+                        if child.Name == name then
+                            child:Destroy()
+                        end
+                    end
+                end
             end
         end
     end
@@ -23,41 +28,37 @@ end
 local function initGui(hubName, toggleKey)
     local guiName = hubName or "NexusUILibrary"
     
-    if not ScreenGui or not ScreenGui.Parent then
-        cleanupOldInstances(guiName)
+    cleanupOldInstances()
 
-        ScreenGui = Instance.new("ScreenGui")
-        ScreenGui.Name = guiName
-        ScreenGui.ResetOnSpawn = false
+    ScreenGui = Instance.new("ScreenGui")
+    ScreenGui.Name = guiName
+    ScreenGui.ResetOnSpawn = false
 
-        local success = pcall(function()
-            if syn and syn.protect_gui then
-                syn.protect_gui(ScreenGui)
-            end
-            ScreenGui.Parent = CoreGui
-        end)
-
-        if not success or ScreenGui.Parent ~= CoreGui then
-            pcall(function()
-                ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
-            end)
+    local success = pcall(function()
+        if syn and syn.protect_gui then
+            syn.protect_gui(ScreenGui)
         end
+        ScreenGui.Parent = CoreGui
+    end)
+
+    if not success or ScreenGui.Parent ~= CoreGui then
+        pcall(function()
+            ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+        end)
     end
 
-    if not NotifHolder or not NotifHolder.Parent then
-        NotifHolder = Instance.new("Frame")
-        NotifHolder.Name = "NotificationHolder"
-        NotifHolder.Size = UDim2.new(0, 240, 1, -40)
-        NotifHolder.Position = UDim2.new(1, -260, 0, 20)
-        NotifHolder.BackgroundTransparency = 1
-        NotifHolder.Parent = ScreenGui
+    NotifHolder = Instance.new("Frame")
+    NotifHolder.Name = "NotificationHolder"
+    NotifHolder.Size = UDim2.new(0, 240, 1, -40)
+    NotifHolder.Position = UDim2.new(1, -260, 0, 20)
+    NotifHolder.BackgroundTransparency = 1
+    NotifHolder.Parent = ScreenGui
 
-        local layout = Instance.new("UIListLayout")
-        layout.SortOrder = Enum.SortOrder.LayoutOrder
-        layout.VerticalAlignment = Enum.VerticalAlignment.Bottom
-        layout.Padding = UDim.new(0, 6)
-        layout.Parent = NotifHolder
-    end
+    local layout = Instance.new("UIListLayout")
+    layout.SortOrder = Enum.SortOrder.LayoutOrder
+    layout.VerticalAlignment = Enum.VerticalAlignment.Bottom
+    layout.Padding = UDim.new(0, 6)
+    layout.Parent = NotifHolder
 
     if not isConnected then
         isConnected = true
@@ -73,16 +74,18 @@ local function initGui(hubName, toggleKey)
 end
 
 function Library:Notify(title, text, duration)
-    initGui("NexusUILibrary", Enum.KeyCode.RightShift)
+    if not ScreenGui or not ScreenGui.Parent or not NotifHolder or not NotifHolder.Parent then
+        initGui("NexusUILibrary", Enum.KeyCode.RightShift)
+    end
 
     title = title or "Notification"
     text = text or ""
     duration = duration or 3
 
     local notif = Instance.new("Frame")
-    notif.Size = UDim2.new(1, 0, 0, 52)
-    notif.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-    notif.BorderColor3 = Color3.fromRGB(45, 45, 45)
+    notif.Size = UDim2.new(1, 0, 0, 56)
+    notif.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    notif.BorderColor3 = Color3.fromRGB(50, 50, 50)
     notif.BorderSizePixel = 1
     notif.BackgroundTransparency = 1
     notif.Parent = NotifHolder
@@ -103,12 +106,12 @@ function Library:Notify(title, text, duration)
     titleLabel.Parent = notif
 
     local textLabel = Instance.new("TextLabel")
-    textLabel.Size = UDim2.new(1, -20, 0, 20)
+    textLabel.Size = UDim2.new(1, -20, 0, 24)
     textLabel.Position = UDim2.new(0, 10, 0, 26)
     textLabel.BackgroundTransparency = 1
     textLabel.Font = Enum.Font.SourceSans
     textLabel.Text = text
-    textLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
+    textLabel.TextColor3 = Color3.fromRGB(190, 190, 190)
     textLabel.TextSize = 12
     textLabel.TextXAlignment = Enum.TextXAlignment.Left
     textLabel.TextWrapped = true
